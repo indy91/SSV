@@ -27,6 +27,7 @@ Date         Developer
 2022/12/23   GLS
 2022/12/28   GLS
 2022/12/31   GLS
+2026/04/05   indy91
 ********************************************/
 #include "OrbitDAP.h"
 #include "../../IDP.h"
@@ -36,6 +37,7 @@ Date         Developer
 #include "RHC_SOP.h"
 #include "THC_SOP.h"
 #include "StateVectorSoftware.h"
+#include "UniversalPointing.h"
 #include "GNCUtilities.h"
 #include "../../../Atlantis.h"
 
@@ -73,7 +75,7 @@ static void LoadAttManeuver(const char* value, AttManeuver& maneuver)
 	VECTOR3 vTemp;
 	sscanf_s(value, "%d%lf%lf%lf", &nTemp, &vTemp.data[PITCH], &vTemp.data[YAW], &vTemp.data[ROLL]);
 
-	if(nTemp == AttManeuver::MNVR || nTemp == AttManeuver::TRK) {
+	if(nTemp == AttManeuver::MNVR || nTemp == AttManeuver::LVLH_TRK || nTemp == AttManeuver::UP) {
 		maneuver.IsValid = true;
 		maneuver.Type = static_cast<AttManeuver::TYPE>(nTemp);
 		maneuver.tgtMatrix = GetRotationMatrixYZX(_V(vTemp.data[ROLL], vTemp.data[PITCH], vTemp.data[YAW]));
@@ -88,30 +90,16 @@ DAPMode(PRI), DAPSelect(A), DAPControlMode(INRTL), editDAP(-1),
 ManeuverStatus(MNVR_OFF),
 bFirstStep(true), lastStepdt(1.0),
 PCTArmed(false), PCTActive(false),
-pStateVector(NULL)
+pStateVector(NULL), pUniversalPointing(NULL)
 {
 	OMSTrim = _V(0.0, 0.0, 0.0);
 	degReqdRates = _V(0.0, 0.0, 0.0);
 	TransPulseDV = _V(0.0, 0.0, 0.0);
 	ATT_ERR = _V(0.0, 0.0, 0.0);
-	REQD_ATT = _V(0.0, 0.0, 0.0);
-
-	for(unsigned int i=0;i<4;i++) START_TIME[i] = 0;
-	MNVR_OPTION = _V(0.0, 0.0, 0.0);
-	TGT_ID=2;
-	BODY_VECT=1;
-	P=0;
-	Y=0;
-	OM=-1;
-	RA = 0.0;
-	DEC = 0.0;
-	LAT = 0.0;
-	LON = 0.0;
-	_ALT = 0.0;
+	RATE_EST = _V(0, 0, 0);
 
 	ActiveManeuver.IsValid = false;
 	CurManeuver.IsValid = false;
-	FutManeuver.IsValid = false;
 
 	Torque.data[PITCH]=ORBITER_PITCH_TORQUE;
 	Torque.data[YAW]=ORBITER_YAW_TORQUE;
@@ -197,12 +185,6 @@ pStateVector(NULL)
 	DAPConfiguration[2].VERN_ROT_PLS = 0.01;
 	DAPConfiguration[2].VERN_COMP = 0.0;
 	DAPConfiguration[2].VERN_CNTL_ACC = 0;
-
-	ERRTOT = true;
-
-	RA_DEC_flash = false;
-	LAT_LON_ALT_flash = false;
-	P_Y_flash = false;
 }
 
 OrbitDAP::~OrbitDAP()
@@ -246,10 +228,25 @@ OrbitDAP::DAP_CONTROL_MODE OrbitDAP::GetDAPMode() const
 	return DAPControlMode;
 }
 
-/*void OrbitDAP::ManeuverToLVLHAttitude(const VECTOR3& degLVLHAtt)
+double OrbitDAP::GetDAPRate() const
 {
-	LoadCurLVLHManeuver(degLVLHAtt*RAD);
-}*/
+	return degRotRate;
+}
+
+double OrbitDAP::GetDAPDeadband() const
+{
+	return degAttDeadband;
+}
+
+VECTOR3 OrbitDAP::Get_RATE_EST() const
+{
+	return RATE_EST;
+}
+
+bool OrbitDAP::Get_Preburn_Mnvr_In_Progress() const
+{
+	return false; // TBD
+}
 
 void OrbitDAP::ManeuverToINRTLAttitude(const VECTOR3& degINRTLAtt)
 {
@@ -258,19 +255,23 @@ void OrbitDAP::ManeuverToINRTLAttitude(const VECTOR3& degINRTLAtt)
 	LoadCurINRTLManeuver(OrbiterAtt);
 }
 
-void OrbitDAP::LoadCurLVLHManeuver(const MATRIX3& tgtMatrixLVLH)
+void OrbitDAP::ManeuverToUPAttitude()
 {
 	CurManeuver.IsValid = true;
-	CurManeuver.tgtMatrix = tgtMatrixLVLH;
-	CurManeuver.Type = AttManeuver::TRK;
-	if(DAPControlMode == AUTO) StartCurManeuver();
+	CurManeuver.tgtMatrix = _M(1, 0, 0, 0, 1, 0, 0, 0, 1); // Does not matter, Universal Pointing supplies the attitude directly
+	CurManeuver.Type = AttManeuver::UP;
+	if (DAPControlMode == AUTO) StartCurManeuver();
 }
 
-void OrbitDAP::LoadFutLVLHManeuver(const MATRIX3& tgtMatrixLVLH)
+void OrbitDAP::CancelManeuver()
 {
-	FutManeuver.IsValid = true;
-	FutManeuver.tgtMatrix = tgtMatrixLVLH;
-	FutManeuver.Type = AttManeuver::TRK;
+	// Old Universal Pointing item 21 (cancel) code
+	CurManeuver.IsValid = false;
+	RotatingAxis[YAW] = false;
+	RotatingAxis[PITCH] = false;
+	RotatingAxis[ROLL] = false;
+	DAPControlMode = INRTL;
+	StartManeuver(curM50Matrix, AttManeuver::MNVR);
 }
 
 void OrbitDAP::LoadCurINRTLManeuver(const MATRIX3& tgtMatrixM50)
@@ -279,13 +280,6 @@ void OrbitDAP::LoadCurINRTLManeuver(const MATRIX3& tgtMatrixM50)
 	CurManeuver.tgtMatrix = tgtMatrixM50;
 	CurManeuver.Type = AttManeuver::MNVR;
 	if(DAPControlMode == AUTO) StartCurManeuver();
-}
-
-void OrbitDAP::LoadFutINRTLManeuver(const MATRIX3& tgtMatrixM50)
-{
-	FutManeuver.IsValid = true;
-	FutManeuver.tgtMatrix = tgtMatrixM50;
-	FutManeuver.Type = AttManeuver::MNVR;
 }
 
 void OrbitDAP::StartCurManeuver()
@@ -307,12 +301,6 @@ void OrbitDAP::StartManeuver(const MATRIX3& tgtAtt, AttManeuver::TYPE type)
 
 	if(ActiveManeuver.Type == AttManeuver::MNVR) {
 		degNullRates = _V(0, 0, 0);
-		// calculate M50 target att
-		REQD_ATT = GetYZX_PYRAnglesFromMatrix(ActiveManeuver.tgtMatrix)*DEG;
-		// correct range
-		if (REQD_ATT.x < 0.0) REQD_ATT.x += 360.0;
-		if (REQD_ATT.y < 0.0) REQD_ATT.y += 360.0;
-		if (REQD_ATT.z < 0.0) REQD_ATT.z += 360.0;
 
 		// calculate time to reach target attitude
 		VECTOR3 Axis;
@@ -321,7 +309,7 @@ void OrbitDAP::StartManeuver(const MATRIX3& tgtAtt, AttManeuver::TYPE type)
 		mnvrCompletionMET = STS()->GetMET() + (Angle*DEG)/degRotRate;
 		lastUpdateTime = 0.0;
 	}
-	else {
+	else if (ActiveManeuver.Type == AttManeuver::LVLH_TRK) {
 		mnvrCompletionMET = STS()->GetMET();
 		lastUpdateTime = -100.0;
 	}
@@ -473,19 +461,6 @@ void OrbitDAP::CalcMultiAxisRates(const VECTOR3& degNullRatesLocal)
 	}
 }
 
-void OrbitDAP::UpdateNullRates()
-{
-	ELEMENTS el;
-	ORBITPARAM param;
-	STS()->GetElements(STS()->GetGravityRef(), el, &param);
-	double orb_rad = 360.0/param.T;
-
-	VECTOR3 tgtLVLHAtt = GetYZX_PYRAnglesFromMatrix(ActiveManeuver.tgtMatrix);
-	degNullRates.data[ROLL] = -orb_rad*sin(tgtLVLHAtt.data[YAW]);
-	degNullRates.data[PITCH] = -orb_rad*cos(tgtLVLHAtt.data[YAW])*cos(tgtLVLHAtt.data[ROLL]);
-	degNullRates.data[YAW] = orb_rad*cos(tgtLVLHAtt.data[YAW])*sin(tgtLVLHAtt.data[ROLL]);
-}
-
 void OrbitDAP::SetRates(const VECTOR3 &degRates, double simdt)
 {
 	const VECTOR3 PRI_LIMITS = _V(0.005, 0.005, 0.005);
@@ -613,14 +588,10 @@ void OrbitDAP::GetAttitudeData()
 	STS()->GetAngularVel(radAngularVelocity);
 	radAngularVelocity = _V(radAngularVelocity.x, -radAngularVelocity.y, radAngularVelocity.z); // convert from Orbitersim to body axis frame
 	degAngularVelocity = radAngularVelocity*DEG;
+	RATE_EST = _V(radAngularVelocity.z, radAngularVelocity.x, -radAngularVelocity.y) * DEG;
 
 	STS()->GetRotationMatrix(curM50Matrix);
 	curM50Matrix = ConvertOrbitersimRotationMatrixToM50(curM50Matrix);
-	CUR_ATT = GetYZX_PYRAnglesFromMatrix(curM50Matrix)*DEG;
-	// correct range
-	if (CUR_ATT.x < 0.0) CUR_ATT.x += 360.0;
-	if (CUR_ATT.y < 0.0) CUR_ATT.y += 360.0;
-	if (CUR_ATT.z < 0.0) CUR_ATT.z += 360.0;
 
 	VECTOR3 QV;
 	double QS;
@@ -645,12 +616,15 @@ void OrbitDAP::Realize()
 
 	pStateVector = dynamic_cast<StateVectorSoftware*>(FindSoftware("StateVectorSoftware"));
 	assert( (pStateVector != NULL) && "OrbitDAP::Realize.pStateVector" );
+	pUniversalPointing = dynamic_cast<UniversalPointing*>(FindSoftware("UniversalPointing"));
+	assert((pUniversalPointing != NULL) && "OrbitDAP::Realize.pUniversalPointing");
 	pRHC_SOP = dynamic_cast<RHC_SOP*>(FindSoftware( "RHC_SOP" ));
 	assert( (pRHC_SOP != NULL) && "OrbitDAP::Realize.pRHC_SOP" );
 	pTHC_SOP = dynamic_cast<THC_SOP*>(FindSoftware( "THC_SOP" ));
 	assert( (pTHC_SOP != NULL) && "OrbitDAP::Realize.pTHC_SOP" );
 
 	UpdateDAPParameters();
+	GetAttitudeData();
 }
 
 void OrbitDAP::OnPreStep(double simt, double simdt, double mjd)
@@ -698,18 +672,9 @@ void OrbitDAP::OnPreStep(double simt, double simdt, double mjd)
 			StartManeuver(curM50Matrix, AttManeuver::MNVR);
 		}
 		else if(DAPControlMode == LVLH) {
-			StartManeuver(GetCurrentLVLHAttMatrix(), AttManeuver::TRK);
+			StartManeuver(GetCurrentLVLHAttMatrix(), AttManeuver::LVLH_TRK);
 		}
 		bFirstStep = false;
-	}
-
-	// monitor future loaded maneuver
-	if(FutManeuver.IsValid) {
-		if(FutMnvrStartTime<=STS()->GetMET()) {
-			CurManeuver = FutManeuver;
-			if(DAPControlMode == AUTO) StartCurManeuver();
-			FutManeuver.IsValid = false;
-		}
 	}
 
 	// PCT
@@ -767,23 +732,34 @@ void OrbitDAP::OnPreStep(double simt, double simdt, double mjd)
 			StartManeuver(curM50Matrix, AttManeuver::MNVR);
 		}
 		else if(DAPControlMode == LVLH) {
-			StartManeuver(GetCurrentLVLHAttMatrix(), AttManeuver::TRK);
+			StartManeuver(GetCurrentLVLHAttMatrix(), AttManeuver::LVLH_TRK);
 		}
 		ATT_ERR = _V(0.0, 0.0, 0.0);
 	}
 	else if(DAPControlMode != FREE) { // if DAP is in FREE, we only care about RHC input; otherwise, we want to maintain target attitude
 		MATRIX3 tgtM50Matrix;  // target M50 attitude for this timestep
-		if(ActiveManeuver.Type == AttManeuver::TRK) { // get (instantaneous) target M50 attitude
+		if (ActiveManeuver.Type == AttManeuver::UP)
+		{
+			// Universal Pointing
+
+			double Q_B_M50_DESIRED_S;
+			VECTOR3 Q_B_M50_DESIRED_V, DESIRED_BODY_RATE;
+
+			pUniversalPointing->GetRequiredQuaternion(Q_B_M50_DESIRED_S, Q_B_M50_DESIRED_V);
+			DESIRED_BODY_RATE = pUniversalPointing->Get_REQD_BRATE();
+
+			tgtM50Matrix = QUAT_TO_MAT(Q_B_M50_DESIRED_S, -Q_B_M50_DESIRED_V);
+			degNullRates = _V(DESIRED_BODY_RATE.y, DESIRED_BODY_RATE.z, DESIRED_BODY_RATE.x); // For now convert to Orbiter axes
+		}
+		else if(ActiveManeuver.Type == AttManeuver::LVLH_TRK) { // get (instantaneous) target M50 attitude
 			MATRIX3 curLVLHMatrix = GetCurrentLVLHRefMatrix();
 			tgtM50Matrix = mul(curLVLHMatrix, ActiveManeuver.tgtMatrix);
-			REQD_ATT = GetYZX_PYRAnglesFromMatrix(tgtM50Matrix)*DEG;
-			// correct range
-			if (REQD_ATT.x < 0.0) REQD_ATT.x += 360.0;
-			if (REQD_ATT.y < 0.0) REQD_ATT.y += 360.0;
-			if (REQD_ATT.z < 0.0) REQD_ATT.z += 360.0;
+
+			// Required body rate for Orbit DAP LVLH mode also comes from Universal Pointing
+			VECTOR3 DESIRED_BODY_RATE = pUniversalPointing->Get_REQD_BRATE();
+			degNullRates = _V(DESIRED_BODY_RATE.y, DESIRED_BODY_RATE.z, DESIRED_BODY_RATE.x); // For now convert to Orbiter axes
 
 			if((STS()->GetMET()-lastUpdateTime) > 60.0) {
-				UpdateNullRates();
 				if(ManeuverStatus < MNVR_COMPLETE) mnvrCompletionMET = STS()->GetMET() + CalcManeuverCompletionTime(curM50Matrix, ActiveManeuver.tgtMatrix, curLVLHMatrix, length(degNullRates));
 				lastUpdateTime = STS()->GetMET();
 			}
@@ -842,392 +818,7 @@ bool OrbitDAP::OnMajorModeChange(unsigned int newMajorMode)
 	return false;
 }
 
-bool OrbitDAP::ItemInput_UNIVPTG( int item, const char* Data )
-{
-	switch (item)
-	{
-		case 1:
-			{
-				int nNew = 0;
-				if (GetIntegerUnsigned( Data, nNew ))
-				{
-					if (nNew < 365) START_TIME[0] = nNew;
-					else return false;
-				}
-				else return false;
-			}
-			break;
-		case 2:
-			{
-				int nNew = 0;
-				if (GetIntegerUnsigned( Data, nNew ))
-				{
-					if (nNew < 24) START_TIME[1] = nNew;
-					else return false;
-				}
-				else return false;
-			}
-			break;
-		case 3:
-			{
-				int nNew = 0;
-				if (GetIntegerUnsigned( Data, nNew ))
-				{
-					if (nNew < 60) START_TIME[2] = nNew;
-					else return false;
-				}
-				else return false;
-			}
-			break;
-		case 4:
-			{
-				int nNew = 0;
-				if (GetIntegerUnsigned( Data, nNew ))
-				{
-					if (nNew < 60) START_TIME[3] = nNew;
-					else return false;
-				}
-				else return false;
-			}
-			break;
-		case 5:
-			{
-				double dNew;
-				if (GetDoubleUnsigned( Data, dNew ))
-				{
-					if (dNew < 359.99)
-					{
-						MNVR_OPTION.data[ROLL] = dNew;
-					}
-					else return false;
-				}
-				else return false;
-			}
-			break;
-		case 6:
-			{
-				double dNew;
-				if (GetDoubleUnsigned( Data, dNew ))
-				{
-					if (dNew < 359.99)
-					{
-						MNVR_OPTION.data[PITCH] = dNew;
-					}
-					else return false;
-				}
-				else return false;
-			}
-			break;
-		case 7:
-			{
-				double dNew;
-				if (GetDoubleUnsigned( Data, dNew ))
-				{
-					if ((dNew <= 90.0) || ((dNew >= 270.0) && (dNew < 359.99))) MNVR_OPTION.data[YAW] = dNew;
-					else return false;
-				}
-				else return false;
-			}
-			break;
-		case 8:
-			{
-				int nNew;
-				if (GetIntegerUnsigned( Data, nNew ))
-				{
-					/*if (nNew == 1)// Orbiting vehicle
-					{
-						TGT_ID = nNew;
-						RA_DEC_flash = false;
-						LAT_LON_ALT_flash = false;
-					}
-					else*/ if (nNew == 2)// Center of Earth
-					{
-						TGT_ID = nNew;
-						RA_DEC_flash = false;
-						LAT_LON_ALT_flash = false;
-					}
-					/*else if (nNew == 3)// Earth relative target
-					{
-						TGT_ID = nNew;
-						RA_DEC_flash = false;
-						LAT_LON_ALT_flash = true;
-					}
-					else if (nNew == 4)// Center of Sun
-					{
-						TGT_ID = nNew;
-						RA_DEC_flash = false;
-						LAT_LON_ALT_flash = false;
-					}
-					else if (nNew == 5)// Celestial target
-					{
-						TGT_ID = nNew;
-						RA_DEC_flash = true;
-						LAT_LON_ALT_flash = false;
-					}
-					else if ((nNew >= 11) && (nNew <= 60))// Navigation stars, OPS 2, 3, and 8
-					{
-						TGT_ID = nNew;
-						RA_DEC_flash = false;
-						LAT_LON_ALT_flash = false;
-					}
-					else if ((nNew >= 61) && (nNew <= 110))// Navigation stars, OPS 2 and 8
-					{
-						TGT_ID = nNew;
-						RA_DEC_flash = false;
-						LAT_LON_ALT_flash = false;
-					}*/
-					else return false;
-				}
-				else return false;
-			}
-			break;
-		case 9:
-			{
-				double dNew;
-				if (GetDoubleUnsigned( Data, dNew ))
-				{
-					if ((dNew <= 359.999) && (TGT_ID == 5))
-					{
-						RA = dNew;
-						RA_DEC_flash = false;
-					}
-					else return false;
-				}
-				else return false;
-			}
-			break;
-		case 10:
-			{
-				double dNew;
-				if (GetDoubleSigned( Data, dNew ))
-				{
-					if ((dNew >= -90.0) && (dNew <= 90.0) && (TGT_ID == 5))
-					{
-						DEC = dNew;
-						RA_DEC_flash = false;
-					}
-					else return false;
-				}
-				else return false;
-			}
-			break;
-		case 11:
-			{
-				double dNew;
-				if (GetDoubleSigned( Data, dNew ))
-				{
-					if ((dNew >= -90.0) && (dNew <= 90.0) && (TGT_ID == 3))
-					{
-						LAT = dNew;
-						LAT_LON_ALT_flash = false;
-					}
-					else return false;
-				}
-				else return false;
-			}
-			break;
-		case 12:
-			{
-				double dNew;
-				if (GetDoubleSigned( Data, dNew ))
-				{
-					if ((dNew >= -180.0) && (dNew <= 180.0) && (TGT_ID == 3))
-					{
-						LON = dNew;
-						LAT_LON_ALT_flash = false;
-					}
-					else return false;
-				}
-				else return false;
-			}
-			break;
-		case 13:
-			{
-				double dNew;
-				if (GetDoubleSigned( Data, dNew ))
-				{
-					if ((dNew >= -3444.0) && (dNew <= 20000.0) && (TGT_ID == 3))
-					{
-						_ALT = dNew;
-						LAT_LON_ALT_flash = false;
-					}
-					else return false;
-				}
-				else return false;
-			}
-			break;
-		case 14:
-			{
-				int nNew;
-				if (GetIntegerUnsigned( Data, nNew ))
-				{
-					if ((nNew >= 1) && (nNew <= 5))
-					{
-						BODY_VECT = nNew;
-						P_Y_flash = false;
-						if (BODY_VECT == 1)
-						{
-							P = 0.0;
-							Y = 0.0;
-						}
-						else if (BODY_VECT == 2)
-						{
-							P = 180.0;
-							Y = 0.0;
-						}
-						else if (BODY_VECT == 3)
-						{
-							P = 90.0;
-							Y = 0.0;
-						}
-						else if (BODY_VECT == 4)
-						{
-							P = 0.0;
-							Y = 280.57;
-						}
-						else P_Y_flash = true;
-					}
-					else return false;
-				}
-				else return false;
-			}
-			break;
-		case 15:
-			{
-				double dNew;
-				if (GetDoubleUnsigned( Data, dNew ))
-				{
-					if ((dNew < 359.99) && (BODY_VECT == 5))
-					{
-						P = dNew;
-						P_Y_flash = false;
-					}
-					else return false;
-				}
-				else return false;
-			}
-			break;
-		case 16:
-			{
-				double dNew;
-				if (GetDoubleUnsigned( Data, dNew ))
-				{
-					if (((dNew <= 90.0) || ((dNew >= 270.0) && (dNew < 359.99))) && (BODY_VECT == 5))
-					{
-						Y=dNew;
-						P_Y_flash = false;
-					}
-					else return false;
-				}
-				else return false;
-			}
-			break;
-		case 17:
-			{
-				double dNew;
-				if (GetDoubleUnsigned( Data, dNew ))
-				{
-					if (dNew < 359.99) OM = dNew;
-					else return false;
-				}
-				else return false;
-			}
-			break;
-		case 18:
-			{
-				if (strlen( Data ) == 0)
-				{
-					//VECTOR3 radTargetAtt = ConvertAnglesBetweenM50AndOrbiter(MNVR_OPTION*RAD, true);
-					MATRIX3 tgtAtt = GetRotationMatrixYZX(_V(MNVR_OPTION.data[ROLL], MNVR_OPTION.data[PITCH], MNVR_OPTION.data[YAW])*RAD);
-					double startTime = START_TIME[0]*86400.0+ START_TIME[1]*3600.0 + START_TIME[2]*60.0 + START_TIME[3];
-					if(startTime <= STS()->GetMET())
-					{
-						LoadCurINRTLManeuver(tgtAtt);
-					}
-					else
-					{
-						FutMnvrStartTime = startTime;
-						LoadFutINRTLManeuver(tgtAtt);
-					}
-
-					RA_DEC_flash = false;
-					LAT_LON_ALT_flash = false;
-					P_Y_flash = false;
-				}
-				else return false;
-			}
-			break;
-		case 19:
-			{
-				if (strlen( Data ) == 0)
-				{
-					if (TGT_ID == 2)
-					{
-						MATRIX3 tgtAtt = ConvertPYOMToLVLH(P*RAD, Y*RAD, OM*RAD);
-						double startTime = START_TIME[0]*86400.0 + START_TIME[1]*3600.0 + START_TIME[2]*60.0 + START_TIME[3];
-						if (startTime <= STS()->GetMET()) LoadCurLVLHManeuver(tgtAtt);
-						else
-						{
-							FutMnvrStartTime = startTime;
-							LoadFutLVLHManeuver(tgtAtt);
-						}
-					}
-					else if (TGT_ID == 3)
-					{
-						// TODO LAT, LON, ALT
-					}
-					else if (TGT_ID == 5)
-					{
-						// TODO RA, DEC
-					}
-
-					RA_DEC_flash = false;
-					LAT_LON_ALT_flash = false;
-					P_Y_flash = false;
-				}
-				else return false;
-			}
-			break;
-		/*case 20:
-			{
-				LoadRotationManeuver();
-				RA_DEC_flash = false;
-				LAT_LON_ALT_flash = false;
-				P_Y_flash = false;
-			}
-			break;*/
-		case 21:
-			{
-				if (strlen( Data ) == 0)
-				{
-					CurManeuver.IsValid = false;
-					FutManeuver.IsValid = false;
-					RotatingAxis[YAW]=false;
-					RotatingAxis[PITCH]=false;
-					RotatingAxis[ROLL]=false;
-
-					DAPControlMode=INRTL;
-					//StartINRTLManeuver(radCurrentOrbiterAtt);
-					StartManeuver(curM50Matrix, AttManeuver::MNVR);
-				}
-				else return false;
-			}
-			break;
-		case 23:
-			if (strlen( Data ) == 0) ERRTOT = true;// ERR TOT
-			else return false;
-			break;
-		case 24:
-			if (strlen( Data ) == 0) ERRTOT = false;// ERR DAP
-			else return false;
-			break;
-		default:
-			return false;
-	}
-	return true;
-}
-
-bool OrbitDAP::ItemInput_DAPCONFIG( int item, const char* Data )
+bool OrbitDAP::ItemInput( int item, const char* Data )
 {
 	switch (item)
 	{
@@ -1637,178 +1228,7 @@ bool OrbitDAP::ItemInput_DAPCONFIG( int item, const char* Data )
 	return true;
 }
 
-void OrbitDAP::PaintUNIVPTGDisplay(vc::MDU* pMDU) const
-{
-	char cbuf[255];
-	PrintCommonHeader("    UNIV PTG", pMDU);
-
-	double CUR_MNVR_COMPL[4];
-	if(DAPControlMode == INRTL || DAPControlMode == FREE) ConvertSecondsToDDHHMMSS(STS()->GetMET(), CUR_MNVR_COMPL);
-	else ConvertSecondsToDDHHMMSS(mnvrCompletionMET, CUR_MNVR_COMPL);
-	pMDU->mvprint(3, 1, "CUR MNVR COMPL");
-	sprintf_s(cbuf, 255, "%.2d:%.2d:%.2d", static_cast<int>(CUR_MNVR_COMPL[1]), static_cast<int>(CUR_MNVR_COMPL[2]), static_cast<int>(CUR_MNVR_COMPL[3]));
-	pMDU->mvprint(18, 1, cbuf);
-	sprintf_s(cbuf, 255, "1 START TIME %.3d/%.2d:%.2d:%.2d",
-		START_TIME[0], START_TIME[1], START_TIME[2], START_TIME[3]);
-	pMDU->mvprint(1, 2, cbuf);
-	pMDU->Underline( 14, 2 );
-	pMDU->Underline( 15, 2 );
-	pMDU->Underline( 16, 2 );
-	pMDU->Underline( 18, 2 );
-	pMDU->Underline( 19, 2 );
-	pMDU->Underline( 21, 2 );
-	pMDU->Underline( 22, 2 );
-	pMDU->Underline( 24, 2 );
-	pMDU->Underline( 25, 2 );
-
-	pMDU->mvprint(0, 4, "MNVR OPTION");
-	sprintf_s(cbuf, 255, "5 R %6.2f", MNVR_OPTION.data[ROLL]);
-	pMDU->mvprint(1, 5, cbuf);
-	pMDU->Underline( 5, 5 );
-	pMDU->Underline( 6, 5 );
-	pMDU->Underline( 7, 5 );
-	pMDU->Underline( 8, 5 );
-	pMDU->Underline( 9, 5 );
-	pMDU->Underline( 10, 5 );
-	sprintf_s(cbuf, 255, "6 P %6.2f", MNVR_OPTION.data[PITCH]);
-	pMDU->mvprint(1, 6, cbuf);
-	sprintf_s(cbuf, 255, "7 Y %6.2f", MNVR_OPTION.data[YAW]);
-	pMDU->mvprint(1, 7, cbuf);
-
-	pMDU->mvprint(0, 9, "TRK/ROT OPTIONS");
-	sprintf_s(cbuf, 255, "8 TGT ID %3d", TGT_ID);
-	pMDU->mvprint(1, 10, cbuf);
-	pMDU->Underline( 10, 10 );
-	pMDU->Underline( 11, 10 );
-	pMDU->Underline( 12, 10 );
-
-	pMDU->mvprint(1, 12, "9  RA");
-	sprintf_s( cbuf, 255, "%7.3f", RA );
-	pMDU->mvprint( 9, 12, cbuf, RA_DEC_flash ? DEUATT_FLASHING : 0 );
-	pMDU->Underline( 9, 12 );
-	pMDU->Underline( 10, 12 );
-	pMDU->Underline( 11, 12 );
-	pMDU->Underline( 12, 12 );
-	pMDU->Underline( 13, 12 );
-	pMDU->Underline( 14, 12 );
-	pMDU->Underline( 15, 12 );
-	pMDU->mvprint(1, 13, "10 DEC");
-	pMDU->NumberSignBracket( 9, 13, DEC );// TODO should brackets flash with sign?
-	sprintf_s( cbuf, 255, "%6.3f", fabs( DEC ) );
-	pMDU->mvprint( 10, 13, cbuf, RA_DEC_flash ? DEUATT_FLASHING : 0 );
-	pMDU->Underline( 10, 13 );
-	pMDU->Underline( 11, 13 );
-	pMDU->Underline( 12, 13 );
-	pMDU->Underline( 13, 13 );
-	pMDU->Underline( 14, 13 );
-	pMDU->Underline( 15, 13 );
-	pMDU->mvprint(1, 14, "11 LAT");
-	pMDU->NumberSignBracket( 9, 14, LAT );// TODO should brackets flash with sign?
-	sprintf_s( cbuf, 255, "%6.3f", fabs( LAT ) );
-	pMDU->mvprint( 10, 14, cbuf, LAT_LON_ALT_flash ? DEUATT_FLASHING : 0 );
-	pMDU->Underline( 10, 14 );
-	pMDU->Underline( 11, 14 );
-	pMDU->Underline( 12, 14 );
-	pMDU->Underline( 13, 14 );
-	pMDU->Underline( 14, 14 );
-	pMDU->Underline( 15, 14 );
-	pMDU->mvprint(1, 15, "12 LON");
-	pMDU->NumberSignBracket( 8, 15, LON );// TODO should brackets flash with sign?
-	sprintf_s( cbuf, 255, "%7.3f", fabs( LON ) );
-	pMDU->mvprint( 9, 15, cbuf, LAT_LON_ALT_flash ? DEUATT_FLASHING : 0 );
-	pMDU->Underline( 9, 15 );
-	pMDU->Underline( 10, 15 );
-	pMDU->Underline( 11, 15 );
-	pMDU->Underline( 12, 15 );
-	pMDU->Underline( 13, 15 );
-	pMDU->Underline( 14, 15 );
-	pMDU->Underline( 15, 15 );
-	pMDU->mvprint(1, 16, "13 ALT");
-	pMDU->NumberSignBracket( 8, 16, _ALT );// TODO should brackets flash with sign?
-	sprintf_s( cbuf, 255, "%7.1f", fabs( _ALT ) );
-	pMDU->mvprint( 9, 16, cbuf, LAT_LON_ALT_flash ? DEUATT_FLASHING : 0 );
-	pMDU->Underline( 9, 16 );
-	pMDU->Underline( 10, 16 );
-	pMDU->Underline( 11, 16 );
-	pMDU->Underline( 12, 16 );
-	pMDU->Underline( 13, 16 );
-	pMDU->Underline( 14, 16 );
-	pMDU->Underline( 15, 16 );
-
-	sprintf_s(cbuf, 255, "14 BODY VECT %d", BODY_VECT);
-	pMDU->mvprint(1, 18, cbuf);
-	pMDU->mvprint( 1, 20, "15 P" );
-	sprintf_s( cbuf, 255, "%6.2f", P );
-	pMDU->mvprint( 7, 20, cbuf, P_Y_flash ? DEUATT_FLASHING : 0 );
-	pMDU->Underline( 7, 20 );
-	pMDU->Underline( 8, 20 );
-	pMDU->Underline( 9, 20 );
-	pMDU->Underline( 10, 20 );
-	pMDU->Underline( 11, 20 );
-	pMDU->Underline( 12, 20 );
-	pMDU->mvprint( 1, 21, "16 Y" );
-	sprintf_s( cbuf, 255, "%6.2f", Y );
-	pMDU->mvprint( 7, 21, cbuf, P_Y_flash ? DEUATT_FLASHING : 0 );
-	if(OM>=0.0) {
-		sprintf_s(cbuf, 255, "17 OM %6.2f", OM);
-		pMDU->mvprint(1, 22, cbuf);
-	}
-	else pMDU->mvprint(1, 22, "17 OM");
-
-	pMDU->mvprint(15, 4, "START MNVR 18");
-	pMDU->mvprint(21, 5, "TRK  19");
-	pMDU->mvprint(21, 6, "ROT  20");
-	pMDU->mvprint(20, 7, "CNCL  21");
-	pMDU->mvprint(28, 3, "CUR");
-	pMDU->mvprint(32, 3, "FUT");
-	if(CurManeuver.IsValid) {
-		if(CurManeuver.Type == AttManeuver::MNVR) {
-			pMDU->mvprint(29, 4, "*");
-		}
-		else if(CurManeuver.Type == AttManeuver::TRK) {
-			pMDU->mvprint(29, 5, "*");
-		}
-		else {
-			pMDU->mvprint(29, 6, "*");
-		}
-	}
-	if(FutManeuver.IsValid) {
-		if(FutManeuver.Type == AttManeuver::MNVR) {
-			pMDU->mvprint(33, 4, "*");
-		}
-		else if(FutManeuver.Type == AttManeuver::TRK) {
-			pMDU->mvprint(33, 5, "*");
-		}
-		else {
-			pMDU->mvprint(33, 6, "*");
-		}
-	}
-
-	pMDU->mvprint(20, 9, "ATT MON");
-	pMDU->mvprint(21, 10, "22 MON AXIS");
-	pMDU->mvprint(21, 11, "ERR TOT 23");
-	pMDU->mvprint(21, 12, "ERR DAP 24");
-	if (ERRTOT == true) pMDU->mvprint( 31, 11, "*" );// ERR TOT
-	else pMDU->mvprint( 31, 12, "*" );// ERR DAP
-
-	pMDU->mvprint(27, 14, "ROLL   PITCH    YAW");
-	sprintf_s(cbuf, 255, "CUR   %6.2f  %6.2f  %6.2f", CUR_ATT.data[ROLL], CUR_ATT.data[PITCH], CUR_ATT.data[YAW]);
-	pMDU->mvprint(20, 15, cbuf);
-	sprintf_s(cbuf, 255, "REQD  %6.2f  %6.2f  %6.2f", REQD_ATT.data[ROLL], REQD_ATT.data[PITCH], REQD_ATT.data[YAW]);
-	pMDU->mvprint(20, 16, cbuf);
-	sprintf_s(cbuf, 255, "ERR   %6.2f  %6.2f  %6.2f", fabs( ATT_ERR.data[ROLL] ), fabs( ATT_ERR.data[PITCH] ), fabs( ATT_ERR.data[YAW] ));
-	pMDU->mvprint(20, 17, cbuf);
-	pMDU->NumberSign( 25, 17, ATT_ERR.data[ROLL] );
-	pMDU->NumberSign( 33, 17, ATT_ERR.data[PITCH] );
-	pMDU->NumberSign( 41, 17, ATT_ERR.data[YAW] );
-	sprintf_s(cbuf, 255, "RATE  %6.3f  %6.3f  %6.3f", fabs( degAngularVelocity.data[ROLL] ), fabs( degAngularVelocity.data[PITCH] ), fabs( degAngularVelocity.data[YAW] ));
-	pMDU->mvprint(20, 18, cbuf);
-	pMDU->NumberSign( 25, 18, degAngularVelocity.data[ROLL] );
-	pMDU->NumberSign( 33, 18, degAngularVelocity.data[PITCH] );
-	pMDU->NumberSign( 41, 18, degAngularVelocity.data[YAW] );
-}
-
-void OrbitDAP::PaintDAPCONFIGDisplay(vc::MDU* pMDU) const
+void OrbitDAP::OnPaint(vc::MDU* pMDU) const
 {
 	char *strings[3]={" ALL", "NOSE", "TAIL"};
 	char cbuf[255];
@@ -1994,64 +1414,7 @@ void OrbitDAP::PaintDAPCONFIGDisplay(vc::MDU* pMDU) const
 
 bool OrbitDAP::OnParseLine(const char* keyword, const char* value)
 {
-	if(!_strnicmp(keyword, "TGT_ID", 6)) {
-		sscanf_s(value, "%d", &TGT_ID);
-		return true;
-	}
-	/*else if (!_strnicmp( keyword, "RA_ANGLE", 8 ))
-	{
-		sscanf_s( value, "%lf", &RA );
-		return true;
-	}
-	else if (!_strnicmp( keyword, "DEC_ANGLE", 9 ))
-	{
-		sscanf_s( value, "%lf", &DEC );
-		return true;
-	}
-	else if (!_strnicmp( keyword, "LAT_ANGLE", 9 ))
-	{
-		sscanf_s( value, "%lf", &LAT );
-		return true;
-	}
-	else if (!_strnicmp( keyword, "LON_ANGLE", 9 ))
-	{
-		sscanf_s( value, "%lf", &LON );
-		return true;
-	}
-	else if (!_strnicmp( keyword, "ALT_ANGLE", 9 ))
-	{
-		sscanf_s( value, "%lf", &_ALT );
-		return true;
-	}*/
-	else if(!_strnicmp(keyword, "BODY_VECT", 9)) {
-		sscanf_s(value, "%d", &BODY_VECT);
-		return true;
-	}
-	else if(!_strnicmp(keyword, "P_ANGLE", 7)) {
-		sscanf_s(value, "%lf", &P);
-		return true;
-	}
-	else if(!_strnicmp(keyword, "Y_ANGLE", 7)) {
-		sscanf_s(value, "%lf", &Y);
-		return true;
-	}
-	else if(!_strnicmp(keyword, "OM_ANGLE", 8)) {
-		sscanf_s(value, "%lf", &OM);
-		return true;
-	}
-	else if(!_strnicmp(keyword, "ROLL", 4)) {
-		sscanf_s(value, "%lf", &MNVR_OPTION.data[ROLL]);
-		return true;
-	}
-	else if(!_strnicmp(keyword, "PITCH", 5)) {
-		sscanf_s(value, "%lf", &MNVR_OPTION.data[PITCH]);
-		return true;
-	}
-	else if(!_strnicmp(keyword, "YAW", 3)) {
-		sscanf_s(value, "%lf", &MNVR_OPTION.data[YAW]);
-		return true;
-	}
-	else if(!_strnicmp(keyword, "DAP_MODE", 8)) {
+	if(!_strnicmp(keyword, "DAP_MODE", 8)) {
 		int nTemp1, nTemp2;
 		sscanf_s(value, "%d %d", &nTemp1, &nTemp2);
 		DAPSelect = static_cast<DAP_SELECT>(nTemp1);
@@ -2090,14 +1453,6 @@ bool OrbitDAP::OnParseLine(const char* keyword, const char* value)
 		LoadAttManeuver(value, CurManeuver);
 		return true;
 	}
-	else if(!_strnicmp (keyword, "FUT_MNVR", 8)) {
-		LoadAttManeuver(value, FutManeuver);
-		return true;
-	}
-	else if(!_strnicmp (keyword, "FUT_START_TIME", 14)) {
-		sscanf_s(value, "%lf", &FutMnvrStartTime);
-		return true;
-	}
 
 	return false;
 }
@@ -2105,19 +1460,6 @@ bool OrbitDAP::OnParseLine(const char* keyword, const char* value)
 void OrbitDAP::OnSaveState(FILEHANDLE scn) const
 {
 	char cbuf[256];
-	oapiWriteScenario_int (scn, "TGT_ID", TGT_ID);
-	oapiWriteScenario_int (scn, "BODY_VECT", BODY_VECT);
-	oapiWriteScenario_float (scn, "ROLL", MNVR_OPTION.data[ROLL]);
-	oapiWriteScenario_float (scn, "PITCH", MNVR_OPTION.data[PITCH]);
-	oapiWriteScenario_float (scn, "YAW", MNVR_OPTION.data[YAW]);
-	/*oapiWriteScenario_float( scn, "RA_ANGLE", RA );
-	oapiWriteScenario_float( scn, "DEC_ANGLE", DEC );
-	oapiWriteScenario_float( scn, "LAT_ANGLE", LAT );
-	oapiWriteScenario_float( scn, "LON_ANGLE", LON );
-	oapiWriteScenario_float( scn, "ALT_ANGLE", _ALT );*/
-	oapiWriteScenario_float (scn, "P_ANGLE", P);
-	oapiWriteScenario_float (scn, "Y_ANGLE", Y);
-	oapiWriteScenario_float (scn, "OM_ANGLE", OM);
 	sprintf_s(cbuf, 256, "%d %d", DAPSelect, DAPMode);
 	oapiWriteScenario_string (scn, "DAP_MODE", cbuf);
 	sprintf_s(cbuf, 256, "%d %d %d", RotMode[0], RotMode[1], RotMode[2]);
@@ -2127,10 +1469,6 @@ void OrbitDAP::OnSaveState(FILEHANDLE scn) const
 	sprintf_s(cbuf, 256, "%d", DAPControlMode);
 	oapiWriteScenario_string (scn, "CONTROL_MODE", cbuf);
 	if(CurManeuver.IsValid) SaveAttManeuver(scn, "CUR_MNVR", CurManeuver);
-	if(FutManeuver.IsValid) {
-		SaveAttManeuver(scn, "FUT_MNVR", FutManeuver);
-		oapiWriteScenario_float(scn, "FUT_START_TIME", FutMnvrStartTime);
-	}
 }
 
 void OrbitDAP::CommandDAPLights( void )
@@ -2393,7 +1731,7 @@ void OrbitDAP::DAP_PBI_Press( void )
 		if (DAPControlMode != LVLH)
 		{
 			DAPControlMode = LVLH;
-			StartManeuver(GetCurrentLVLHAttMatrix(), AttManeuver::TRK);
+			StartManeuver(GetCurrentLVLHAttMatrix(), AttManeuver::LVLH_TRK);
 		}
 	}
 

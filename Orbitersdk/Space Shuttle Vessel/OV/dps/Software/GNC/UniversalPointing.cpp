@@ -82,7 +82,7 @@ namespace dps
 	{
 		if ((simt - lastUpdateSimTime) > 1.92)
 		{
-			//Read
+			// Read
 			GMT = ReadClock();
 			GMTC = GMT; //TBD: Should be time tag of attitude quaternion from attitude processor
 			Q_BOD_M50_S = ReadCOMPOOL_VS(SCP_Q_B_I, 1, 4);
@@ -93,10 +93,10 @@ namespace dps
 			RREL = ReadCOMPOOL_VD(SCP_DEL_R_TARG);
 			VREL = ReadCOMPOOL_VD(SCP_DEL_V_TARG);
 
-			//Perform Universal Pointing Processing Sequencing Task
+			// Perform Universal Pointing Processing Sequencing Task
 			UNIV_SEQ();
 
-			//Write for GAX
+			// Write for GAX
 			if (AUTO_ALERT)
 			{
 				WriteCOMPOOL_IS(SCP_SEL_AUTO_CREW_ALERT, 1);
@@ -625,22 +625,11 @@ namespace dps
 		sprintf_s(cbuf, 255, "%6.2f", BODV_YAW / RAD_PER_DEG);
 		pMDU->mvprint(7, 21, cbuf, Y_flash ? DEUATT_FLASHING : 0);
 
-		if (OMICRON_flash)
+		pMDU->mvprint(1, 22, "17 OM");
+		if (OMICRON_flash || THREE_AXIS)
 		{
-			sprintf_s(cbuf, 255, "17 OM %6.2f", OMICRON / RAD_PER_DEG);
-			pMDU->mvprint(1, 22, cbuf, DEUATT_FLASHING);
-		}
-		else
-		{
-			if (THREE_AXIS)
-			{
-				sprintf_s(cbuf, 255, "17 OM %6.2f", OMICRON / RAD_PER_DEG);
-				pMDU->mvprint(1, 22, cbuf);
-			}
-			else
-			{
-				pMDU->mvprint(1, 22, "17 OM");
-			}
+			sprintf_s(cbuf, 255, "%6.2f", OMICRON / RAD_PER_DEG);
+			pMDU->mvprint(7, 22, cbuf, OMICRON_flash ? DEUATT_FLASHING : 0);
 		}
 
 		pMDU->mvprint(15, 4, "START MNVR 18");

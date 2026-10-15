@@ -38,6 +38,7 @@ Date         Developer
 2022/12/23   GLS
 2022/12/28   GLS
 2026/04/05   indy91
+2026/10/14   google0101-ryan
 ********************************************/
 #ifndef _dps_ORBITDAP_H_
 #define _dps_ORBITDAP_H_
@@ -141,7 +142,9 @@ private:
 	TRANS_MODE TransMode[3]; // 0=X, 1=Y, 2=Z
 
 	int editDAP; // -1=None, 0=A, 1=B
-	DAPConfig DAPConfiguration[3]; //0=A, 1=B, 2=Edit
+	int editDAPProfile;
+	int activeAProfile, activeBProfile; // 0-14, specifies profile within either A or B
+	DAPConfig DAPConfiguration[3][15]; //0=A, 1=B, 2=Edit
 
 	// values change depending on DAP mode selected
 	// initialized in Realize() function
@@ -307,6 +310,8 @@ private:
 	 * Returns rotation matrix representing current attitude in LVLH frame
 	 */
 	MATRIX3 GetCurrentLVLHAttMatrix() const;
+
+	int GetCurrentProfile(int item);
 };
 
 }

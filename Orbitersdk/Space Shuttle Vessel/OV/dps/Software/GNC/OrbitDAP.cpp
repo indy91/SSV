@@ -28,6 +28,7 @@ Date         Developer
 2022/12/28   GLS
 2022/12/31   GLS
 2026/04/05   indy91
+2026/10/14   google0101-ryan
 ********************************************/
 #include "OrbitDAP.h"
 #include "../../IDP.h"
@@ -105,6 +106,8 @@ pStateVector(NULL), pUniversalPointing(NULL)
 	Torque.data[YAW]=ORBITER_YAW_TORQUE;
 	Torque.data[ROLL]=ORBITER_ROLL_TORQUE;
 
+	// The below is a nominal iloaded ISS rendezvous DAP setup
+
 	// DAP A (numbers for typical ISS DAP A1 - NOM)
 	RotMode[0] = DISC_RATE;
 	TransMode[0] = NORM;
@@ -112,52 +115,515 @@ pStateVector(NULL), pUniversalPointing(NULL)
 	TransPulseInProg[0] = false;
 	RotatingAxis[0] = false;
 	NullingRates[0] = false;
-	DAPConfiguration[0].PRI_ROT_RATE = 0.2;
-	DAPConfiguration[0].PRI_ATT_DB = 5.0;
-	DAPConfiguration[0].PRI_RATE_DB = 0.2;
-	DAPConfiguration[0].PRI_ROT_PLS = 0.1;
-	DAPConfiguration[0].PRI_COMP = 0.0;
-	DAPConfiguration[0].PRI_P_OPTION = 0;
-	DAPConfiguration[0].PRI_Y_OPTION = 0;
-	DAPConfiguration[0].PRI_TRAN_PLS = 0.1;
-	DAPConfiguration[0].ALT_RATE_DB = 0.2;
-	DAPConfiguration[0].ALT_ON_TIME = 0.08;
-	DAPConfiguration[0].ALT_DELAY = 0.0;
-	DAPConfiguration[0].ALT_JET_OPT = 0;
-	DAPConfiguration[0].ALT_JETS = 2;
-	DAPConfiguration[0].VERN_ROT_RATE = 0.2;
-	DAPConfiguration[0].VERN_ATT_DB = 1.0;
-	DAPConfiguration[0].VERN_RATE_DB = 0.020;
-	DAPConfiguration[0].VERN_ROT_PLS = 0.01;
-	DAPConfiguration[0].VERN_COMP = 0.0;
-	DAPConfiguration[0].VERN_CNTL_ACC = 0;
+	DAPConfiguration[0][0].PRI_ROT_RATE = 0.2;
+	DAPConfiguration[0][0].PRI_ATT_DB = 5.0;
+	DAPConfiguration[0][0].PRI_RATE_DB = 0.2;
+	DAPConfiguration[0][0].PRI_ROT_PLS = 0.1;
+	DAPConfiguration[0][0].PRI_COMP = 0.0;
+	DAPConfiguration[0][0].PRI_P_OPTION = 0;
+	DAPConfiguration[0][0].PRI_Y_OPTION = 0;
+	DAPConfiguration[0][0].PRI_TRAN_PLS = 0.1;
+	DAPConfiguration[0][0].ALT_RATE_DB = 0.2;
+	DAPConfiguration[0][0].ALT_ON_TIME = 0.08;
+	DAPConfiguration[0][0].ALT_DELAY = 0.0;
+	DAPConfiguration[0][0].ALT_JET_OPT = 0;
+	DAPConfiguration[0][0].ALT_JETS = 2;
+	DAPConfiguration[0][0].VERN_ROT_RATE = 0.2;
+	DAPConfiguration[0][0].VERN_ATT_DB = 1.0;
+	DAPConfiguration[0][0].VERN_RATE_DB = 0.020;
+	DAPConfiguration[0][0].VERN_ROT_PLS = 0.01;
+	DAPConfiguration[0][0].VERN_COMP = 0.0;
+	DAPConfiguration[0][0].VERN_CNTL_ACC = 0;
 
-	// DAP B (numbers for typical ISS DAP B10 - Docking)
+	// DAP A2 - PTC
+	DAPConfiguration[0][1].PRI_ROT_RATE = 0.4;
+	DAPConfiguration[0][1].PRI_ATT_DB = 1.0;
+	DAPConfiguration[0][1].PRI_RATE_DB = 0.2;
+	DAPConfiguration[0][1].PRI_ROT_PLS = 0.1;
+	DAPConfiguration[0][1].PRI_COMP = 0;
+	DAPConfiguration[0][1].PRI_P_OPTION = 0;
+	DAPConfiguration[0][1].PRI_Y_OPTION = 0;
+	DAPConfiguration[0][1].PRI_TRAN_PLS = 0.1;
+	DAPConfiguration[0][1].ALT_RATE_DB = 0.2;
+	DAPConfiguration[0][1].ALT_JET_OPT = 0;
+	DAPConfiguration[0][1].ALT_JETS = 2;
+	DAPConfiguration[0][1].ALT_ON_TIME = 0.08;
+	DAPConfiguration[0][1].ALT_DELAY = 0;
+	DAPConfiguration[0][1].VERN_ROT_RATE = 0.4;
+	DAPConfiguration[0][1].VERN_ATT_DB = 1.0;
+	DAPConfiguration[0][1].VERN_RATE_DB = 0.02;
+	DAPConfiguration[0][1].VERN_ROT_PLS = 0.01;
+	DAPConfiguration[0][1].VERN_COMP = 0;
+	DAPConfiguration[0][1].VERN_CNTL_ACC = 0;
+
+	// DAP A3 - Gravity Gradient
+	DAPConfiguration[0][2].PRI_ROT_RATE = 0.2;
+	DAPConfiguration[0][2].PRI_ATT_DB = 0.3;
+	DAPConfiguration[0][2].PRI_RATE_DB = 0.2;
+	DAPConfiguration[0][2].PRI_ROT_PLS = 0.1;
+	DAPConfiguration[0][2].PRI_COMP = 0;
+	DAPConfiguration[0][2].PRI_P_OPTION = 0;
+	DAPConfiguration[0][2].PRI_Y_OPTION = 1;
+	DAPConfiguration[0][2].PRI_TRAN_PLS = 0.1;
+	DAPConfiguration[0][2].ALT_RATE_DB = 0.07;
+	DAPConfiguration[0][2].ALT_JET_OPT = 0;
+	DAPConfiguration[0][2].ALT_JETS = 1;
+	DAPConfiguration[0][2].ALT_ON_TIME = 0.08;
+	DAPConfiguration[0][2].ALT_DELAY = 0;
+	DAPConfiguration[0][2].VERN_ROT_RATE = 0.008;
+	DAPConfiguration[0][2].VERN_ATT_DB = 0.07;
+	DAPConfiguration[0][2].VERN_RATE_DB = 0.01;
+	DAPConfiguration[0][2].VERN_ROT_PLS = 0.01;
+	DAPConfiguration[0][2].VERN_COMP = 0;
+	DAPConfiguration[0][2].VERN_CNTL_ACC = 0;
+
+	// DAP A4
+	DAPConfiguration[0][3].PRI_ROT_RATE = 0.5;
+	DAPConfiguration[0][3].PRI_ATT_DB = 3;
+	DAPConfiguration[0][3].PRI_RATE_DB = 0.2;
+	DAPConfiguration[0][3].PRI_ROT_PLS = 0.1;
+	DAPConfiguration[0][3].PRI_COMP = 0;
+	DAPConfiguration[0][3].PRI_P_OPTION = 0;
+	DAPConfiguration[0][3].PRI_Y_OPTION = 0;
+	DAPConfiguration[0][3].PRI_TRAN_PLS = 0.1;
+	DAPConfiguration[0][3].ALT_RATE_DB = 0.2;
+	DAPConfiguration[0][3].ALT_JET_OPT = 0;
+	DAPConfiguration[0][3].ALT_JETS = 2;
+	DAPConfiguration[0][3].ALT_ON_TIME = 0.08;
+	DAPConfiguration[0][3].ALT_DELAY = 0;
+	DAPConfiguration[0][3].VERN_ROT_RATE = 0.2;
+	DAPConfiguration[0][3].VERN_ATT_DB = 1;
+	DAPConfiguration[0][3].VERN_RATE_DB = 0.02;
+	DAPConfiguration[0][3].VERN_ROT_PLS = 0.01;
+	DAPConfiguration[0][3].VERN_COMP = 0;
+	DAPConfiguration[0][3].VERN_CNTL_ACC = 0;
+
+	// DAP A5 (loss of vern ALL)
+	DAPConfiguration[0][4].PRI_ROT_RATE = 0.2;
+	DAPConfiguration[0][4].PRI_ATT_DB = 5;
+	DAPConfiguration[0][4].PRI_RATE_DB = 0.2;
+	DAPConfiguration[0][4].PRI_ROT_PLS = 0.1;
+	DAPConfiguration[0][4].PRI_COMP = 0;
+	DAPConfiguration[0][4].PRI_P_OPTION = 0;
+	DAPConfiguration[0][4].PRI_Y_OPTION = 0;
+	DAPConfiguration[0][4].PRI_TRAN_PLS = 0.1;
+	DAPConfiguration[0][4].ALT_RATE_DB = 0.07;
+	DAPConfiguration[0][4].ALT_JET_OPT = 0;
+	DAPConfiguration[0][4].ALT_JETS = 1;
+	DAPConfiguration[0][4].ALT_ON_TIME = 0.08;
+	DAPConfiguration[0][4].ALT_DELAY = 0;
+	DAPConfiguration[0][4].VERN_ROT_RATE = 0.05;
+	DAPConfiguration[0][4].VERN_ATT_DB = 1;
+	DAPConfiguration[0][4].VERN_RATE_DB = 0.02;
+	DAPConfiguration[0][4].VERN_ROT_PLS = 0.01;
+	DAPConfiguration[0][4].VERN_COMP = 0;
+	DAPConfiguration[0][4].VERN_CNTL_ACC = 0;
+
+	// DAP A6 (loss of vern TAIL)
+	DAPConfiguration[0][5].PRI_ROT_RATE = 0.2;
+	DAPConfiguration[0][5].PRI_ATT_DB = 5;
+	DAPConfiguration[0][5].PRI_RATE_DB = 0.2;
+	DAPConfiguration[0][5].PRI_ROT_PLS = 0.1;
+	DAPConfiguration[0][5].PRI_COMP = 0;
+	DAPConfiguration[0][5].PRI_P_OPTION = 1;
+	DAPConfiguration[0][5].PRI_Y_OPTION = 1;
+	DAPConfiguration[0][5].PRI_TRAN_PLS = 0.1;
+	DAPConfiguration[0][5].ALT_RATE_DB = 0.07;
+	DAPConfiguration[0][5].ALT_JET_OPT = 1;
+	DAPConfiguration[0][5].ALT_JETS = 1;
+	DAPConfiguration[0][5].ALT_ON_TIME = 0.08;
+	DAPConfiguration[0][5].ALT_DELAY = 0;
+	DAPConfiguration[0][5].VERN_ROT_RATE = 0.05;
+	DAPConfiguration[0][5].VERN_ATT_DB = 1;
+	DAPConfiguration[0][5].VERN_RATE_DB = 0.02;
+	DAPConfiguration[0][5].VERN_ROT_PLS = 0.01;
+	DAPConfiguration[0][5].VERN_COMP = 0;
+	DAPConfiguration[0][5].VERN_CNTL_ACC = 0;
+
+	// DAP A7 (rendezvous)
+	DAPConfiguration[0][6].PRI_ROT_RATE = 0.2;
+	DAPConfiguration[0][6].PRI_ATT_DB = 2;
+	DAPConfiguration[0][6].PRI_RATE_DB = 0.2;
+	DAPConfiguration[0][6].PRI_ROT_PLS = 0.1;
+	DAPConfiguration[0][6].PRI_COMP = 0;
+	DAPConfiguration[0][6].PRI_P_OPTION = 0;
+	DAPConfiguration[0][6].PRI_Y_OPTION = 0;
+	DAPConfiguration[0][6].PRI_TRAN_PLS = 0.1;
+	DAPConfiguration[0][6].ALT_RATE_DB = 0.1;
+	DAPConfiguration[0][6].ALT_JET_OPT = 0;
+	DAPConfiguration[0][6].ALT_JETS = 2;
+	DAPConfiguration[0][6].ALT_ON_TIME = 0.08;
+	DAPConfiguration[0][6].ALT_DELAY = 0;
+	DAPConfiguration[0][6].VERN_ROT_RATE = 0.0160;
+	DAPConfiguration[0][6].VERN_ATT_DB = 1;
+	DAPConfiguration[0][6].VERN_RATE_DB = 0.02;
+	DAPConfiguration[0][6].VERN_ROT_PLS = 0.01;
+	DAPConfiguration[0][6].VERN_COMP = 0;
+	DAPConfiguration[0][6].VERN_CNTL_ACC = 0;
+
+	// DAP A8 (terminal phase)
+	DAPConfiguration[0][7].PRI_ROT_RATE = 0.2;
+	DAPConfiguration[0][7].PRI_ATT_DB = 2;
+	DAPConfiguration[0][7].PRI_RATE_DB = 0.2;
+	DAPConfiguration[0][7].PRI_ROT_PLS = 0.1;
+	DAPConfiguration[0][7].PRI_COMP = 0;
+	DAPConfiguration[0][7].PRI_P_OPTION = 0;
+	DAPConfiguration[0][7].PRI_Y_OPTION = 0;
+	DAPConfiguration[0][7].PRI_TRAN_PLS = 0.1;
+	DAPConfiguration[0][7].ALT_RATE_DB = 0.1;
+	DAPConfiguration[0][7].ALT_JET_OPT = 0;
+	DAPConfiguration[0][7].ALT_JETS = 2;
+	DAPConfiguration[0][7].ALT_ON_TIME = 0.08;
+	DAPConfiguration[0][7].ALT_DELAY = 0;
+	DAPConfiguration[0][7].VERN_ROT_RATE = 0.05;
+	DAPConfiguration[0][7].VERN_ATT_DB = 1;
+	DAPConfiguration[0][7].VERN_RATE_DB = 0.02;
+	DAPConfiguration[0][7].VERN_ROT_PLS = 0.05;
+	DAPConfiguration[0][7].VERN_COMP = 0;
+	DAPConfiguration[0][7].VERN_CNTL_ACC = 0;
+
+	// DAP A9 (Prox ops / flyaround)
+	DAPConfiguration[0][8].PRI_ROT_RATE = 0.13;
+	DAPConfiguration[0][8].PRI_ATT_DB = 2;
+	DAPConfiguration[0][8].PRI_RATE_DB = 0.1;
+	DAPConfiguration[0][8].PRI_ROT_PLS = 0.1;
+	DAPConfiguration[0][8].PRI_COMP = 0;
+	DAPConfiguration[0][8].PRI_P_OPTION = 1;
+	DAPConfiguration[0][8].PRI_Y_OPTION = 1;
+	DAPConfiguration[0][8].PRI_TRAN_PLS = 0.05;
+	DAPConfiguration[0][8].ALT_RATE_DB = 0.1;
+	DAPConfiguration[0][8].ALT_JET_OPT = 1;
+	DAPConfiguration[0][8].ALT_JETS = 2;
+	DAPConfiguration[0][8].ALT_ON_TIME = 0.08;
+	DAPConfiguration[0][8].ALT_DELAY = 0;
+	DAPConfiguration[0][8].VERN_ROT_RATE = 0.13;
+	DAPConfiguration[0][8].VERN_ATT_DB = 1;
+	DAPConfiguration[0][8].VERN_RATE_DB = 0.02;
+	DAPConfiguration[0][8].VERN_ROT_PLS = 0.05;
+	DAPConfiguration[0][8].VERN_COMP = 0;
+	DAPConfiguration[0][8].VERN_CNTL_ACC = 0;
+
+	// DAP A10 (docking)
+	DAPConfiguration[0][9].PRI_ROT_RATE = 0.05;
+	DAPConfiguration[0][9].PRI_ATT_DB = 0.6;
+	DAPConfiguration[0][9].PRI_RATE_DB = 0.1;
+	DAPConfiguration[0][9].PRI_ROT_PLS = 0.1;
+	DAPConfiguration[0][9].PRI_COMP = 0;
+	DAPConfiguration[0][9].PRI_P_OPTION = 1;
+	DAPConfiguration[0][9].PRI_Y_OPTION = 1;
+	DAPConfiguration[0][9].PRI_TRAN_PLS = 0.05;
+	DAPConfiguration[0][9].ALT_RATE_DB = 0.1;
+	DAPConfiguration[0][9].ALT_JET_OPT = 1;
+	DAPConfiguration[0][9].ALT_JETS = 2;
+	DAPConfiguration[0][9].ALT_ON_TIME = 0.08;
+	DAPConfiguration[0][9].ALT_DELAY = 0;
+	DAPConfiguration[0][9].VERN_ROT_RATE = 0.05;
+	DAPConfiguration[0][9].VERN_ATT_DB = 0.5;
+	DAPConfiguration[0][9].VERN_RATE_DB = 0.02;
+	DAPConfiguration[0][9].VERN_ROT_PLS = 0.05;
+	DAPConfiguration[0][9].VERN_COMP = 0;
+	DAPConfiguration[0][9].VERN_CNTL_ACC = 0;
+
+	// DAP A11 (auto reboost)
+	DAPConfiguration[0][10].PRI_ROT_RATE = 0.05;
+	DAPConfiguration[0][10].PRI_ATT_DB = 10;
+	DAPConfiguration[0][10].PRI_RATE_DB = 0.2;
+	DAPConfiguration[0][10].PRI_ROT_PLS = 0.1;
+	DAPConfiguration[0][10].PRI_COMP = 0;
+	DAPConfiguration[0][10].PRI_P_OPTION = 1;
+	DAPConfiguration[0][10].PRI_Y_OPTION = 1;
+	DAPConfiguration[0][10].PRI_TRAN_PLS = 0.05;
+	DAPConfiguration[0][10].ALT_RATE_DB = 0.035;
+	DAPConfiguration[0][10].ALT_JET_OPT = 1;
+	DAPConfiguration[0][10].ALT_JETS = 1;
+	DAPConfiguration[0][10].ALT_ON_TIME = 0.08;
+	DAPConfiguration[0][10].ALT_DELAY = 6;
+	DAPConfiguration[0][10].VERN_ROT_RATE = 0.1;
+	DAPConfiguration[0][10].VERN_ATT_DB = 5.0;
+	DAPConfiguration[0][10].VERN_RATE_DB = 0.05;
+	DAPConfiguration[0][10].VERN_ROT_PLS = 0.01;
+	DAPConfiguration[0][10].VERN_COMP = 0;
+	DAPConfiguration[0][10].VERN_CNTL_ACC = 2;
+
+	// DAP A12 (Mated hold (VRCS and ALT)
+	DAPConfiguration[0][11].PRI_ROT_RATE = 0.05;
+	DAPConfiguration[0][11].PRI_ATT_DB = 1;
+	DAPConfiguration[0][11].PRI_RATE_DB = 0.2;
+	DAPConfiguration[0][11].PRI_ROT_PLS = 0.04;
+	DAPConfiguration[0][11].PRI_COMP = 0;
+	DAPConfiguration[0][11].PRI_P_OPTION = 1;
+	DAPConfiguration[0][11].PRI_Y_OPTION = 1;
+	DAPConfiguration[0][11].PRI_TRAN_PLS = 0.01;
+	DAPConfiguration[0][11].ALT_RATE_DB = 0.035;
+	DAPConfiguration[0][11].ALT_JET_OPT = 1;
+	DAPConfiguration[0][11].ALT_JETS = 1;
+	DAPConfiguration[0][11].ALT_ON_TIME = 0.08;
+	DAPConfiguration[0][11].ALT_DELAY = 6;
+	DAPConfiguration[0][11].VERN_ROT_RATE = 0.01;
+	DAPConfiguration[0][11].VERN_ATT_DB = 1;
+	DAPConfiguration[0][11].VERN_RATE_DB = 0.02;
+	DAPConfiguration[0][11].VERN_ROT_PLS = 0.002;
+	DAPConfiguration[0][11].VERN_COMP = 0;
+	DAPConfiguration[0][11].VERN_CNTL_ACC = 2;
+
+	// DAP A14 (Orbiter alone SRMS/OBSS)
+	DAPConfiguration[0][13].PRI_ROT_RATE = 0.2;
+	DAPConfiguration[0][13].PRI_ATT_DB = 5;
+	DAPConfiguration[0][13].PRI_RATE_DB = 0.2;
+	DAPConfiguration[0][13].PRI_ROT_PLS = 0.1;
+	DAPConfiguration[0][13].PRI_COMP = 0;
+	DAPConfiguration[0][13].PRI_P_OPTION = 1;
+	DAPConfiguration[0][13].PRI_Y_OPTION = 1;
+	DAPConfiguration[0][13].PRI_TRAN_PLS = 0.1;
+	DAPConfiguration[0][13].ALT_RATE_DB = 0.2;
+	DAPConfiguration[0][13].ALT_JET_OPT = 1;
+	DAPConfiguration[0][13].ALT_JETS = 1;
+	DAPConfiguration[0][13].ALT_ON_TIME = 0.08;
+	DAPConfiguration[0][13].ALT_DELAY = 6;
+	DAPConfiguration[0][13].VERN_ROT_RATE = 0.2;
+	DAPConfiguration[0][13].VERN_ATT_DB = 3;
+	DAPConfiguration[0][13].VERN_RATE_DB = 0.2;
+	DAPConfiguration[0][13].VERN_ROT_PLS = 0.01;
+	DAPConfiguration[0][13].VERN_COMP = 0;
+	DAPConfiguration[0][13].VERN_CNTL_ACC = 1;
+
 	RotMode[1] = DISC_RATE;
 	TransMode[1] = NORM;
 	RotPulseInProg[1] = false;
 	TransPulseInProg[1] = false;
 	RotatingAxis[1] = false;
 	NullingRates[1] = false;
-	DAPConfiguration[1].PRI_ROT_RATE = 0.05;
-	DAPConfiguration[1].PRI_ATT_DB = 0.6;
-	DAPConfiguration[1].PRI_RATE_DB = 0.1;
-	DAPConfiguration[1].PRI_ROT_PLS = 0.04;
-	DAPConfiguration[1].PRI_COMP = 0.0;
-	DAPConfiguration[1].PRI_P_OPTION = 2;
-	DAPConfiguration[1].PRI_Y_OPTION = 2;
-	DAPConfiguration[1].PRI_TRAN_PLS = 0.01;
-	DAPConfiguration[1].ALT_RATE_DB = 0.1;
-	DAPConfiguration[1].ALT_ON_TIME = 0.08;
-	DAPConfiguration[1].ALT_DELAY = 0.0;
-	DAPConfiguration[1].ALT_JET_OPT = 2;
-	DAPConfiguration[1].ALT_JETS = 2;
-	DAPConfiguration[1].VERN_ROT_RATE = 0.05;
-	DAPConfiguration[1].VERN_ATT_DB = 0.5;
-	DAPConfiguration[1].VERN_RATE_DB = 0.020;
-	DAPConfiguration[1].VERN_ROT_PLS = 0.02;
-	DAPConfiguration[1].VERN_COMP = 0.0;
-	DAPConfiguration[1].VERN_CNTL_ACC = 0;
+
+	// DAP B1 (OMS & RCS burns)
+	DAPConfiguration[1][0].PRI_ROT_RATE = 0.5;
+	DAPConfiguration[1][0].PRI_ATT_DB = 3;
+	DAPConfiguration[1][0].PRI_RATE_DB = 0.2;
+	DAPConfiguration[1][0].PRI_ROT_PLS = 0.04;
+	DAPConfiguration[1][0].PRI_COMP = 0.0;
+	DAPConfiguration[1][0].PRI_P_OPTION = 0;
+	DAPConfiguration[1][0].PRI_Y_OPTION = 0;
+	DAPConfiguration[1][0].PRI_TRAN_PLS = 0.1;
+	DAPConfiguration[1][0].ALT_RATE_DB = 0.2;
+	DAPConfiguration[1][0].ALT_JET_OPT = 0;
+	DAPConfiguration[1][0].ALT_JETS = 2;
+	DAPConfiguration[1][0].ALT_ON_TIME = 0.08;
+	DAPConfiguration[1][0].ALT_DELAY = 0.0;
+	DAPConfiguration[1][0].VERN_ROT_RATE = 0.2;
+	DAPConfiguration[1][0].VERN_ATT_DB = 1;
+	DAPConfiguration[1][0].VERN_RATE_DB = 0.020;
+	DAPConfiguration[1][0].VERN_ROT_PLS = 0.002;
+	DAPConfiguration[1][0].VERN_COMP = 0.0;
+	DAPConfiguration[1][0].VERN_CNTL_ACC = 0;
+
+	// DAP B2 (Loss of vern tail-only)
+	DAPConfiguration[1][1].PRI_ROT_RATE = 0.2;
+	DAPConfiguration[1][1].PRI_ATT_DB = 3;
+	DAPConfiguration[1][1].PRI_RATE_DB = 0.2;
+	DAPConfiguration[1][1].PRI_ROT_PLS = 0.04;
+	DAPConfiguration[1][1].PRI_COMP = 0.0;
+	DAPConfiguration[1][1].PRI_P_OPTION = 1;
+	DAPConfiguration[1][1].PRI_Y_OPTION = 1;
+	DAPConfiguration[1][1].PRI_TRAN_PLS = 0.02;
+	DAPConfiguration[1][1].ALT_RATE_DB = 0.07;
+	DAPConfiguration[1][1].ALT_JET_OPT = 1;
+	DAPConfiguration[1][1].ALT_JETS = 1;
+	DAPConfiguration[1][1].ALT_ON_TIME = 0.08;
+	DAPConfiguration[1][1].ALT_DELAY = 0.0;
+	DAPConfiguration[1][1].VERN_ROT_RATE = 0.2;
+	DAPConfiguration[1][1].VERN_ATT_DB = 1;
+	DAPConfiguration[1][1].VERN_RATE_DB = 0.020;
+	DAPConfiguration[1][1].VERN_ROT_PLS = 0.002;
+	DAPConfiguration[1][1].VERN_COMP = 0.0;
+	DAPConfiguration[1][1].VERN_CNTL_ACC = 0;
+
+	// DAP B3 (Loss of vern all)
+	DAPConfiguration[1][2].PRI_ROT_RATE = 0.2;
+	DAPConfiguration[1][2].PRI_ATT_DB = 3;
+	DAPConfiguration[1][2].PRI_RATE_DB = 0.2;
+	DAPConfiguration[1][2].PRI_ROT_PLS = 0.04;
+	DAPConfiguration[1][2].PRI_COMP = 0.0;
+	DAPConfiguration[1][2].PRI_P_OPTION = 0;
+	DAPConfiguration[1][2].PRI_Y_OPTION = 0;
+	DAPConfiguration[1][2].PRI_TRAN_PLS = 0.02;
+	DAPConfiguration[1][2].ALT_RATE_DB = 0.07;
+	DAPConfiguration[1][2].ALT_JET_OPT = 0;
+	DAPConfiguration[1][2].ALT_JETS = 1;
+	DAPConfiguration[1][2].ALT_ON_TIME = 0.08;
+	DAPConfiguration[1][2].ALT_DELAY = 0.0;
+	DAPConfiguration[1][2].VERN_ROT_RATE = 0.2;
+	DAPConfiguration[1][2].VERN_ATT_DB = 1;
+	DAPConfiguration[1][2].VERN_RATE_DB = 0.020;
+	DAPConfiguration[1][2].VERN_ROT_PLS = 0.002;
+	DAPConfiguration[1][2].VERN_COMP = 0.0;
+	DAPConfiguration[1][2].VERN_CNTL_ACC = 0;
+
+	// DAP B4
+	DAPConfiguration[1][3].PRI_ROT_RATE = 0.2;
+	DAPConfiguration[1][3].PRI_ATT_DB = 0.3;
+	DAPConfiguration[1][3].PRI_RATE_DB = 0.2;
+	DAPConfiguration[1][3].PRI_ROT_PLS = 0.04;
+	DAPConfiguration[1][3].PRI_COMP = 0.0;
+	DAPConfiguration[1][3].PRI_P_OPTION = 1;
+	DAPConfiguration[1][3].PRI_Y_OPTION = 1;
+	DAPConfiguration[1][3].PRI_TRAN_PLS = 0.02;
+	DAPConfiguration[1][3].ALT_RATE_DB = 0.1;
+	DAPConfiguration[1][3].ALT_JET_OPT = 0;
+	DAPConfiguration[1][3].ALT_JETS = 2;
+	DAPConfiguration[1][3].ALT_ON_TIME = 0.08;
+	DAPConfiguration[1][3].ALT_DELAY = 0.0;
+	DAPConfiguration[1][3].VERN_ROT_RATE = 0.008;
+	DAPConfiguration[1][3].VERN_ATT_DB = 0.1;
+	DAPConfiguration[1][3].VERN_RATE_DB = 0.010;
+	DAPConfiguration[1][3].VERN_ROT_PLS = 0.002;
+	DAPConfiguration[1][3].VERN_COMP = 0.0;
+	DAPConfiguration[1][3].VERN_CNTL_ACC = 0;
+
+	// DAP B5 (COAS/HUD cal)
+	DAPConfiguration[1][4].PRI_ROT_RATE = 0.2;
+	DAPConfiguration[1][4].PRI_ATT_DB = 3;
+	DAPConfiguration[1][4].PRI_RATE_DB = 0.2;
+	DAPConfiguration[1][4].PRI_ROT_PLS = 0.04;
+	DAPConfiguration[1][4].PRI_COMP = 0.0;
+	DAPConfiguration[1][4].PRI_P_OPTION = 1;
+	DAPConfiguration[1][4].PRI_Y_OPTION = 1;
+	DAPConfiguration[1][4].PRI_TRAN_PLS = 0.02;
+	DAPConfiguration[1][4].ALT_RATE_DB = 0.2;
+	DAPConfiguration[1][4].ALT_JET_OPT = 0;
+	DAPConfiguration[1][4].ALT_JETS = 2;
+	DAPConfiguration[1][4].ALT_ON_TIME = 0.08;
+	DAPConfiguration[1][4].ALT_DELAY = 0.0;
+	DAPConfiguration[1][4].VERN_ROT_RATE = 0.0160;
+	DAPConfiguration[1][4].VERN_ATT_DB = 0.033;
+	DAPConfiguration[1][4].VERN_RATE_DB = 0.020;
+	DAPConfiguration[1][4].VERN_ROT_PLS = 0.002;
+	DAPConfiguration[1][4].VERN_COMP = 0.0;
+	DAPConfiguration[1][4].VERN_CNTL_ACC = 0;
+
+	// DAP B6
+	DAPConfiguration[1][5].PRI_ROT_RATE = 0.5;
+	DAPConfiguration[1][5].PRI_ATT_DB = 3;
+	DAPConfiguration[1][5].PRI_RATE_DB = 0.2;
+	DAPConfiguration[1][5].PRI_ROT_PLS = 0.04;
+	DAPConfiguration[1][5].PRI_COMP = 0.0;
+	DAPConfiguration[1][5].PRI_P_OPTION = 0;
+	DAPConfiguration[1][5].PRI_Y_OPTION = 0;
+	DAPConfiguration[1][5].PRI_TRAN_PLS = 0.02;
+	DAPConfiguration[1][5].ALT_RATE_DB = 0.2;
+	DAPConfiguration[1][5].ALT_JET_OPT = 0;
+	DAPConfiguration[1][5].ALT_JETS = 2;
+	DAPConfiguration[1][5].ALT_ON_TIME = 0.08;
+	DAPConfiguration[1][5].ALT_DELAY = 0.0;
+	DAPConfiguration[1][5].VERN_ROT_RATE = 0.2;
+	DAPConfiguration[1][5].VERN_ATT_DB = 1;
+	DAPConfiguration[1][5].VERN_RATE_DB = 0.020;
+	DAPConfiguration[1][5].VERN_ROT_PLS = 0.002;
+	DAPConfiguration[1][5].VERN_COMP = 0.0;
+	DAPConfiguration[1][5].VERN_CNTL_ACC = 0;
+
+	// DAP B7 (rendezvous)
+	DAPConfiguration[1][6].PRI_ROT_RATE = 0.5;
+	DAPConfiguration[1][6].PRI_ATT_DB = 2;
+	DAPConfiguration[1][6].PRI_RATE_DB = 0.2;
+	DAPConfiguration[1][6].PRI_ROT_PLS = 0.04;
+	DAPConfiguration[1][6].PRI_COMP = 0.0;
+	DAPConfiguration[1][6].PRI_P_OPTION = 0;
+	DAPConfiguration[1][6].PRI_Y_OPTION = 0;
+	DAPConfiguration[1][6].PRI_TRAN_PLS = 0.05;
+	DAPConfiguration[1][6].ALT_RATE_DB = 0.1;
+	DAPConfiguration[1][6].ALT_JET_OPT = 0;
+	DAPConfiguration[1][6].ALT_JETS = 2;
+	DAPConfiguration[1][6].ALT_ON_TIME = 0.08;
+	DAPConfiguration[1][6].ALT_DELAY = 0.0;
+	DAPConfiguration[1][6].VERN_ROT_RATE = 0.2;
+	DAPConfiguration[1][6].VERN_ATT_DB = 1;
+	DAPConfiguration[1][6].VERN_RATE_DB = 0.020;
+	DAPConfiguration[1][6].VERN_ROT_PLS = 0.002;
+	DAPConfiguration[1][6].VERN_COMP = 0.0;
+	DAPConfiguration[1][6].VERN_CNTL_ACC = 0;
+
+	// DAP B8 (terminal phase)
+	DAPConfiguration[1][7].PRI_ROT_RATE = 0.05;
+	DAPConfiguration[1][7].PRI_ATT_DB = 2;
+	DAPConfiguration[1][7].PRI_RATE_DB = 0.2;
+	DAPConfiguration[1][7].PRI_ROT_PLS = 0.04;
+	DAPConfiguration[1][7].PRI_COMP = 0.0;
+	DAPConfiguration[1][7].PRI_P_OPTION = 0;
+	DAPConfiguration[1][7].PRI_Y_OPTION = 0;
+	DAPConfiguration[1][7].PRI_TRAN_PLS = 0.05;
+	DAPConfiguration[1][7].ALT_RATE_DB = 0.1;
+	DAPConfiguration[1][7].ALT_JET_OPT = 0;
+	DAPConfiguration[1][7].ALT_JETS = 2;
+	DAPConfiguration[1][7].ALT_ON_TIME = 0.08;
+	DAPConfiguration[1][7].ALT_DELAY = 0.0;
+	DAPConfiguration[1][7].VERN_ROT_RATE = 0.05;
+	DAPConfiguration[1][7].VERN_ATT_DB = 1;
+	DAPConfiguration[1][7].VERN_RATE_DB = 0.020;
+	DAPConfiguration[1][7].VERN_ROT_PLS = 0.020;
+	DAPConfiguration[1][7].VERN_COMP = 0.0;
+	DAPConfiguration[1][7].VERN_CNTL_ACC = 0;
+
+	// DAP B9 (prox ops/flyaround)
+	DAPConfiguration[1][8].PRI_ROT_RATE = 0.13;
+	DAPConfiguration[1][8].PRI_ATT_DB = 2;
+	DAPConfiguration[1][8].PRI_RATE_DB = 0.1;
+	DAPConfiguration[1][8].PRI_ROT_PLS = 0.04;
+	DAPConfiguration[1][8].PRI_COMP = 0.0;
+	DAPConfiguration[1][8].PRI_P_OPTION = 1;
+	DAPConfiguration[1][8].PRI_Y_OPTION = 1;
+	DAPConfiguration[1][8].PRI_TRAN_PLS = 0.01;
+	DAPConfiguration[1][8].ALT_RATE_DB = 0.1;
+	DAPConfiguration[1][8].ALT_JET_OPT = 1;
+	DAPConfiguration[1][8].ALT_JETS = 2;
+	DAPConfiguration[1][8].ALT_ON_TIME = 0.08;
+	DAPConfiguration[1][8].ALT_DELAY = 10.0;
+	DAPConfiguration[1][8].VERN_ROT_RATE = 0.13;
+	DAPConfiguration[1][8].VERN_ATT_DB = 1;
+	DAPConfiguration[1][8].VERN_RATE_DB = 0.020;
+	DAPConfiguration[1][8].VERN_ROT_PLS = 0.020;
+	DAPConfiguration[1][8].VERN_COMP = 0.0;
+	DAPConfiguration[1][8].VERN_CNTL_ACC = 0;
+
+	// DAP B10 (docking)
+	DAPConfiguration[1][9].PRI_ROT_RATE = 0.05;
+	DAPConfiguration[1][9].PRI_ATT_DB = 0.6;
+	DAPConfiguration[1][9].PRI_RATE_DB = 0.1;
+	DAPConfiguration[1][9].PRI_ROT_PLS = 0.04;
+	DAPConfiguration[1][9].PRI_COMP = 0.0;
+	DAPConfiguration[1][9].PRI_P_OPTION = 1;
+	DAPConfiguration[1][9].PRI_Y_OPTION = 1;
+	DAPConfiguration[1][9].PRI_TRAN_PLS = 0.01;
+	DAPConfiguration[1][9].ALT_RATE_DB = 0.1;
+	DAPConfiguration[1][9].ALT_JET_OPT = 1;
+	DAPConfiguration[1][9].ALT_JETS = 2;
+	DAPConfiguration[1][9].ALT_ON_TIME = 0.08;
+	DAPConfiguration[1][9].ALT_DELAY = 0.0;
+	DAPConfiguration[1][9].VERN_ROT_RATE = 0.05;
+	DAPConfiguration[1][9].VERN_ATT_DB = 0.5;
+	DAPConfiguration[1][9].VERN_RATE_DB = 0.020;
+	DAPConfiguration[1][9].VERN_ROT_PLS = 0.020;
+	DAPConfiguration[1][9].VERN_COMP = 0.0;
+	DAPConfiguration[1][9].VERN_CNTL_ACC = 0;
+
+	// DAP B12 (mated maneuvers VRCS & ALT)
+	DAPConfiguration[1][11].PRI_ROT_RATE = 0.05;
+	DAPConfiguration[1][11].PRI_ATT_DB = 5;
+	DAPConfiguration[1][11].PRI_RATE_DB = 0.2;
+	DAPConfiguration[1][11].PRI_ROT_PLS = 0.04;
+	DAPConfiguration[1][11].PRI_COMP = 0.0;
+	DAPConfiguration[1][11].PRI_P_OPTION = 1;
+	DAPConfiguration[1][11].PRI_Y_OPTION = 1;
+	DAPConfiguration[1][11].PRI_TRAN_PLS = 0.01;
+	DAPConfiguration[1][11].ALT_RATE_DB = 0.035;
+	DAPConfiguration[1][11].ALT_JET_OPT = 1;
+	DAPConfiguration[1][11].ALT_JETS = 1;
+	DAPConfiguration[1][11].ALT_ON_TIME = 0.08;
+	DAPConfiguration[1][11].ALT_DELAY = 6;
+	DAPConfiguration[1][11].VERN_ROT_RATE = 0.1;
+	DAPConfiguration[1][11].VERN_ATT_DB = 3;
+	DAPConfiguration[1][11].VERN_RATE_DB = 0.050;
+	DAPConfiguration[1][11].VERN_ROT_PLS = 0.002;
+	DAPConfiguration[1][11].VERN_COMP = 0.0;
+	DAPConfiguration[1][11].VERN_CNTL_ACC = 2;
 
 	// edit DAP
 	RotMode[2] = DISC_RATE;
@@ -166,25 +632,28 @@ pStateVector(NULL), pUniversalPointing(NULL)
 	TransPulseInProg[2] = false;
 	RotatingAxis[2] = false;
 	NullingRates[2] = false;
-	DAPConfiguration[2].PRI_ROT_RATE = 2.0;
-	DAPConfiguration[2].PRI_ATT_DB = 5.0;
-	DAPConfiguration[2].PRI_RATE_DB = 0.2;
-	DAPConfiguration[2].PRI_ROT_PLS = 0.1;
-	DAPConfiguration[2].PRI_COMP = 0.0;
-	DAPConfiguration[2].PRI_P_OPTION = 0;
-	DAPConfiguration[2].PRI_Y_OPTION = 0;
-	DAPConfiguration[2].PRI_TRAN_PLS = 0.1;
-	DAPConfiguration[2].ALT_RATE_DB = 0.2;
-	DAPConfiguration[2].ALT_ON_TIME = 0.08;
-	DAPConfiguration[2].ALT_DELAY = 0.0;
-	DAPConfiguration[2].ALT_JET_OPT = 0;
-	DAPConfiguration[2].ALT_JETS = 2;
-	DAPConfiguration[2].VERN_ROT_RATE = 0.1;
-	DAPConfiguration[2].VERN_ATT_DB = 1.0;
-	DAPConfiguration[2].VERN_RATE_DB = 0.020;
-	DAPConfiguration[2].VERN_ROT_PLS = 0.01;
-	DAPConfiguration[2].VERN_COMP = 0.0;
-	DAPConfiguration[2].VERN_CNTL_ACC = 0;
+	DAPConfiguration[2][0].PRI_ROT_RATE = 2.0;
+	DAPConfiguration[2][0].PRI_ATT_DB = 5.0;
+	DAPConfiguration[2][0].PRI_RATE_DB = 0.2;
+	DAPConfiguration[2][0].PRI_ROT_PLS = 0.1;
+	DAPConfiguration[2][0].PRI_COMP = 0.0;
+	DAPConfiguration[2][0].PRI_P_OPTION = 0;
+	DAPConfiguration[2][0].PRI_Y_OPTION = 0;
+	DAPConfiguration[2][0].PRI_TRAN_PLS = 0.1;
+	DAPConfiguration[2][0].ALT_RATE_DB = 0.2;
+	DAPConfiguration[2][0].ALT_ON_TIME = 0.08;
+	DAPConfiguration[2][0].ALT_DELAY = 0.0;
+	DAPConfiguration[2][0].ALT_JET_OPT = 0;
+	DAPConfiguration[2][0].ALT_JETS = 2;
+	DAPConfiguration[2][0].VERN_ROT_RATE = 0.1;
+	DAPConfiguration[2][0].VERN_ATT_DB = 1.0;
+	DAPConfiguration[2][0].VERN_RATE_DB = 0.020;
+	DAPConfiguration[2][0].VERN_ROT_PLS = 0.01;
+	DAPConfiguration[2][0].VERN_COMP = 0.0;
+	DAPConfiguration[2][0].VERN_CNTL_ACC = 0;
+
+	activeAProfile = 0;
+	activeBProfile = 0;
 }
 
 OrbitDAP::~OrbitDAP()
@@ -820,19 +1289,49 @@ bool OrbitDAP::OnMajorModeChange(unsigned int newMajorMode)
 
 bool OrbitDAP::ItemInput( int item, const char* Data )
 {
+	int profile = GetCurrentProfile(item);
+
 	switch (item)
 	{
+		case 1:
+			{
+				int num;
+				if (GetIntegerUnsigned(Data, num))
+				{
+					if (num > 0 && num <= 15)
+					{
+						activeAProfile = num-1;
+					}
+					else return false;
+				}
+				else return false;
+			}
+			break;
+		case 2:
+			{
+				int num;
+				if (GetIntegerUnsigned(Data, num))
+				{
+					if (num > 0 && num <= 15)
+					{
+						activeBProfile = num-1;
+					}
+					else return false;
+				}
+				else return false;
+			}
+		break;
 		case 3:
 		case 4:
 			{
 				int num;
 				if (GetIntegerUnsigned( Data, num ))
 				{
-					if (num <= 15)
+					if (num > 0 && num <= 15)
 					{
-						// TODO use num
 						editDAP=item-3;
-						DAPConfiguration[2]=DAPConfiguration[editDAP];
+						editDAPProfile = num-1;
+						DAPConfiguration[2][0] = DAPConfiguration[editDAP][num-1];
 					}
 					else return false;
 				}
@@ -842,7 +1341,7 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 		case 5:
 			if (strlen( Data ) == 0)
 			{
-				if(editDAP != -1) DAPConfiguration[editDAP]=DAPConfiguration[2];
+				if(editDAP != -1) DAPConfiguration[editDAP][editDAPProfile] = DAPConfiguration[2][0];
 				editDAP=-1;
 			}
 			else return false;
@@ -856,7 +1355,7 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				{
 					if(dNew>=0.05 && dNew<=2.0)
 					{
-						DAPConfiguration[convert[item]].PRI_ROT_RATE=dNew;
+						DAPConfiguration[convert[item]][activeAProfile].PRI_ROT_RATE=dNew;
 						if(convert[item]==DAPSelect && DAPMode==PRI) UpdateDAPParameters();
 					}
 					else return false;
@@ -873,7 +1372,7 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				{
 					if(dNew>0.10 && dNew<=40.0)
 					{
-						DAPConfiguration[convert[item]].PRI_ATT_DB=dNew;
+						DAPConfiguration[convert[item]][GetCurrentProfile(item)].PRI_ATT_DB=dNew;
 						if(convert[item]==DAPSelect && DAPMode==PRI) UpdateDAPParameters();
 					}
 					else return false;
@@ -890,7 +1389,7 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				{
 					if(dNew>=0.10 && dNew<=5.0)
 					{
-						DAPConfiguration[convert[item]].PRI_RATE_DB=dNew;
+						DAPConfiguration[convert[item]][GetCurrentProfile(item)].PRI_RATE_DB=dNew;
 						if(convert[item]==DAPSelect && DAPMode==PRI) UpdateDAPParameters();
 					}
 					else return false;
@@ -907,7 +1406,7 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				{
 					if(dNew>=0.04 && dNew<=1.0)
 					{
-						DAPConfiguration[convert[item]].PRI_ROT_PLS=dNew;
+						DAPConfiguration[convert[item]][GetCurrentProfile(item)].PRI_ROT_PLS=dNew;
 						if(convert[item]==DAPSelect && DAPMode==PRI) UpdateDAPParameters();
 					}
 					else return false;
@@ -924,7 +1423,7 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				{
 					if (dNew<=0.999)
 					{
-						DAPConfiguration[convert[item]].PRI_COMP=dNew;
+						DAPConfiguration[convert[item]][GetCurrentProfile(item)].PRI_COMP=dNew;
 						if(convert[item]==DAPSelect && DAPMode==PRI) UpdateDAPParameters();
 					}
 					else return false;
@@ -935,19 +1434,20 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 		case 15:
 		case 35:
 		case 55:
-			if (strlen( Data ) == 0)
+		{
+			if (strlen(Data) == 0)
 			{
-				if (DAPConfiguration[convert[item]].PRI_P_OPTION<2)
+				if (DAPConfiguration[convert[item]][profile].PRI_P_OPTION < 2)
 				{
-					DAPConfiguration[convert[item]].PRI_P_OPTION++;
-					if (DAPMode==PRI)
+					DAPConfiguration[convert[item]][profile].PRI_P_OPTION++;
+					if (DAPMode == PRI)
 					{
-						if (DAPConfiguration[DAPSelect].PRI_P_OPTION==1)
+						if (DAPConfiguration[DAPSelect][profile].PRI_P_OPTION == 1)
 						{
 							STS()->DisableThrusters(AftPitchThrusters, 2);
 							UpdateDAPParameters();
 						}
-						else if (DAPConfiguration[DAPSelect].PRI_P_OPTION==2)
+						else if (DAPConfiguration[DAPSelect][profile].PRI_P_OPTION == 2)
 						{
 							STS()->EnableThrusters(AftPitchThrusters, 2);
 							STS()->DisableThrusters(NosePitchThrusters, 2);
@@ -957,8 +1457,8 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				}
 				else
 				{
-					DAPConfiguration[convert[item]].PRI_P_OPTION=0;
-					if (DAPConfiguration[DAPSelect].PRI_P_OPTION==0)
+					DAPConfiguration[convert[item]][profile].PRI_P_OPTION = 0;
+					if (DAPConfiguration[DAPSelect][profile].PRI_P_OPTION == 0)
 					{
 						STS()->EnableThrusters(NosePitchThrusters, 2);
 						UpdateDAPParameters();
@@ -967,22 +1467,23 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 			}
 			else return false;
 			break;
+		}
 		case 16:
 		case 36:
 		case 56:
 			if (strlen( Data ) == 0)
 			{
-				if (DAPConfiguration[convert[item]].PRI_Y_OPTION<2)
+				if (DAPConfiguration[convert[item]][profile].PRI_Y_OPTION<2)
 				{
-					DAPConfiguration[convert[item]].PRI_Y_OPTION++;
+					DAPConfiguration[convert[item]][profile].PRI_Y_OPTION++;
 					if (DAPMode==PRI)
 					{
-						if (DAPConfiguration[DAPSelect].PRI_Y_OPTION==1)
+						if (DAPConfiguration[DAPSelect][profile].PRI_Y_OPTION==1)
 						{
 							STS()->DisableThrusters(AftYawThrusters, 2);
 							UpdateDAPParameters();
 						}
-						else if (DAPConfiguration[DAPSelect].PRI_Y_OPTION==2)
+						else if (DAPConfiguration[DAPSelect][profile].PRI_Y_OPTION==2)
 						{
 							STS()->EnableThrusters(AftYawThrusters, 2);
 							STS()->DisableThrusters(NoseYawThrusters, 2);
@@ -992,8 +1493,8 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				}
 				else
 				{
-					DAPConfiguration[convert[item]].PRI_Y_OPTION=0;
-					if (DAPConfiguration[DAPSelect].PRI_Y_OPTION==0)
+					DAPConfiguration[convert[item]][profile].PRI_Y_OPTION=0;
+					if (DAPConfiguration[DAPSelect][profile].PRI_Y_OPTION==0)
 					{
 						STS()->EnableThrusters(NoseYawThrusters, 2);
 						UpdateDAPParameters();
@@ -1011,7 +1512,7 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				{
 					if (dNew>=0.01 && dNew<=5.0)
 					{
-						DAPConfiguration[convert[item]].PRI_TRAN_PLS=dNew;
+						DAPConfiguration[convert[item]][profile].PRI_TRAN_PLS=dNew;
 						if (convert[item]== DAPSelect && DAPMode==PRI) UpdateDAPParameters();
 					}
 					else return false;
@@ -1028,7 +1529,7 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				{
 					if (dNew>=0.05 && dNew<=5.0)
 					{
-						DAPConfiguration[convert[item]].ALT_RATE_DB=dNew;
+						DAPConfiguration[convert[item]][profile].ALT_RATE_DB=dNew;
 						if (convert[item]==DAPSelect && DAPMode==ALT) UpdateDAPParameters();
 					}
 					else return false;
@@ -1041,12 +1542,12 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 		case 59:
 			if (strlen( Data ) == 0)
 			{
-				if (DAPConfiguration[convert[item]].ALT_JET_OPT==0)
+				if (DAPConfiguration[convert[item]][profile].ALT_JET_OPT==0)
 				{
-					DAPConfiguration[convert[item]].ALT_JET_OPT=2;
+					DAPConfiguration[convert[item]][profile].ALT_JET_OPT=2;
 					if (DAPMode==ALT)
 					{
-						if (DAPConfiguration[DAPSelect].ALT_JET_OPT==2)
+						if (DAPConfiguration[DAPSelect][profile].ALT_JET_OPT==2)
 						{
 							STS()->DisableThrusters(NoseRotThrusters, 6);
 							STS()->EnableThrusters(AftRotThrusters, 6);
@@ -1056,10 +1557,10 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				}
 				else
 				{
-					DAPConfiguration[convert[item]].ALT_JET_OPT=0;
+					DAPConfiguration[convert[item]][profile].ALT_JET_OPT=0;
 					if (DAPMode==ALT)
 					{
-						if (DAPConfiguration[DAPSelect].ALT_JET_OPT==0)
+						if (DAPConfiguration[DAPSelect][profile].ALT_JET_OPT==0)
 						{
 							STS()->EnableThrusters(NoseRotThrusters, 6);
 							UpdateDAPParameters();
@@ -1078,7 +1579,7 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				{
 					if (nNew>=1 && nNew<=3)
 					{
-						DAPConfiguration[convert[item]].ALT_JETS=nNew;
+						DAPConfiguration[convert[item]][profile].ALT_JETS=nNew;
 						if (convert[item]==DAPSelect && DAPMode==ALT) UpdateDAPParameters();
 					}
 					else return false;
@@ -1095,7 +1596,7 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				{
 					if (dNew>=0.08 && dNew<=9.99)
 					{
-						DAPConfiguration[convert[item]].ALT_ON_TIME=dNew;
+						DAPConfiguration[convert[item]][profile].ALT_ON_TIME=dNew;
 						if (convert[item]==DAPSelect && DAPMode==ALT) UpdateDAPParameters();
 					}
 					else return false;
@@ -1112,7 +1613,7 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				{
 					if (dNew<=99.99)
 					{
-						DAPConfiguration[convert[item]].ALT_DELAY=dNew;
+						DAPConfiguration[convert[item]][profile].ALT_DELAY=dNew;
 						if (convert[item]==DAPSelect && DAPMode==ALT) UpdateDAPParameters();
 					}
 					else return false;
@@ -1129,7 +1630,7 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				{
 					if (dNew>=0.002 && dNew<=1.0)
 					{
-						DAPConfiguration[convert[item]].VERN_ROT_RATE=dNew;
+						DAPConfiguration[convert[item]][profile].VERN_ROT_RATE=dNew;
 						if (convert[item]==DAPSelect && DAPMode==VERN) UpdateDAPParameters();
 					}
 					else return false;
@@ -1146,7 +1647,7 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				{
 					if (dNew>=0.01 && dNew<=40.0)
 					{
-						DAPConfiguration[convert[item]].VERN_ATT_DB=dNew;
+						DAPConfiguration[convert[item]][profile].VERN_ATT_DB=dNew;
 						if (convert[item]==DAPSelect && DAPMode==VERN) UpdateDAPParameters();
 					}
 					else return false;
@@ -1163,7 +1664,7 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				{
 					if (dNew>=0.01 && dNew<=0.5)
 					{
-						DAPConfiguration[convert[item]].VERN_RATE_DB=dNew;
+						DAPConfiguration[convert[item]][profile].VERN_RATE_DB=dNew;
 						if (convert[item]==DAPSelect && DAPMode==VERN) UpdateDAPParameters();
 					}
 					else return false;
@@ -1180,7 +1681,7 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				{
 					if (dNew>=0.001 && dNew<=0.5)
 					{
-						DAPConfiguration[convert[item]].VERN_ROT_PLS=dNew;
+						DAPConfiguration[convert[item]][profile].VERN_ROT_PLS=dNew;
 						if (convert[item]==DAPSelect && DAPMode==VERN) UpdateDAPParameters();
 					}
 					else return false;
@@ -1197,7 +1698,7 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				{
 					if (dNew<=0.999)
 					{
-						DAPConfiguration[convert[item]].VERN_COMP=dNew;
+						DAPConfiguration[convert[item]][profile].VERN_COMP=dNew;
 						if (convert[item]==DAPSelect && DAPMode==VERN) UpdateDAPParameters();
 					}
 					else return false;
@@ -1214,7 +1715,7 @@ bool OrbitDAP::ItemInput( int item, const char* Data )
 				{
 					if (nNew<=9)
 					{
-						DAPConfiguration[convert[item]].VERN_CNTL_ACC=nNew;
+						DAPConfiguration[convert[item]][profile].VERN_CNTL_ACC=nNew;
 						if (convert[item]==DAPSelect && DAPMode==VERN) UpdateDAPParameters();
 					}
 					else return false;
@@ -1267,16 +1768,27 @@ void OrbitDAP::OnPaint(vc::MDU* pMDU) const
 	pMDU->mvprint(0, 22, "COMP");
 	pMDU->mvprint(0, 23, "CNTL ACC");
 
-	pMDU->mvprint( 16, 2, "01" );
+
+	sprintf_s(cbuf, 255, "%02d", activeAProfile+1);
+	pMDU->mvprint( 16, 2, cbuf );
 	pMDU->Underline( 16, 2 );
 	pMDU->Underline( 17, 2 );
-	pMDU->mvprint( 27, 2, "02" );
+	sprintf_s(cbuf, 255, "%02d", activeBProfile+1);
+	pMDU->mvprint( 27, 2, cbuf );
 	pMDU->Underline( 27, 2 );
 	pMDU->Underline( 28, 2 );
 
 	int edit=2; //temporary
 	for(n=1, i=0;n<=lim[edit];n+=2, i++) {
-		sprintf_s(cbuf, 255, "%d %.4f", 10*n, DAPConfiguration[i].PRI_ROT_RATE);
+		int profile;
+		if (i == 0)
+			profile = activeAProfile;
+		else if (i == 1)
+			profile = activeBProfile;
+		else
+			profile = 0;
+
+		sprintf_s(cbuf, 255, "%d %.4f", 10*n, DAPConfiguration[i][profile].PRI_ROT_RATE);
 		pMDU->mvprint(9+11*i, 3, cbuf);
 		pMDU->Underline( 12 + 11 * i, 3 );
 		pMDU->Underline( 13 + 11 * i, 3 );
@@ -1284,38 +1796,38 @@ void OrbitDAP::OnPaint(vc::MDU* pMDU) const
 		pMDU->Underline( 15 + 11 * i, 3 );
 		pMDU->Underline( 16 + 11 * i, 3 );
 		pMDU->Underline( 17 + 11 * i, 3 );
-		sprintf_s(cbuf, 255, "%d  %05.2f", 10*n+1, DAPConfiguration[i].PRI_ATT_DB);
+		sprintf_s(cbuf, 255, "%d  %05.2f", 10*n+1, DAPConfiguration[i][profile].PRI_ATT_DB);
 		pMDU->mvprint(9+11*i, 4, cbuf);
 		pMDU->Underline( 13 + 11 * i, 4 );
 		pMDU->Underline( 14 + 11 * i, 4 );
 		pMDU->Underline( 15 + 11 * i, 4 );
 		pMDU->Underline( 16 + 11 * i, 4 );
 		pMDU->Underline( 17 + 11 * i, 4 );
-		sprintf_s(cbuf, 255, "%d   %.2f", 10*n+2, DAPConfiguration[i].PRI_RATE_DB);
+		sprintf_s(cbuf, 255, "%d   %.2f", 10*n+2, DAPConfiguration[i][profile].PRI_RATE_DB);
 		pMDU->mvprint(9+11*i, 5, cbuf);
 		pMDU->Underline( 14 + 11 * i, 5 );
 		pMDU->Underline( 15 + 11 * i, 5 );
 		pMDU->Underline( 16 + 11 * i, 5 );
 		pMDU->Underline( 17 + 11 * i, 5 );
-		sprintf_s(cbuf, 255, "%d  %.3f", 10*n+3, DAPConfiguration[i].PRI_ROT_PLS);
+		sprintf_s(cbuf, 255, "%d  %.3f", 10*n+3, DAPConfiguration[i][profile].PRI_ROT_PLS);
 		pMDU->mvprint(9+11*i, 6, cbuf);
 		pMDU->Underline( 13 + 11 * i, 6 );
 		pMDU->Underline( 14 + 11 * i, 6 );
 		pMDU->Underline( 15 + 11 * i, 6 );
 		pMDU->Underline( 16 + 11 * i, 6 );
 		pMDU->Underline( 17 + 11 * i, 6 );
-		sprintf_s(cbuf, 255, "%d  %.3f", 10*n+4, DAPConfiguration[i].PRI_COMP);
+		sprintf_s(cbuf, 255, "%d  %.3f", 10*n+4, DAPConfiguration[i][profile].PRI_COMP);
 		pMDU->mvprint(9+11*i, 7, cbuf);
 		pMDU->mvprint( 13 + 11 * i, 7, " " );
 		pMDU->Underline( 14 + 11 * i, 7 );
 		pMDU->Underline( 15 + 11 * i, 7 );
 		pMDU->Underline( 16 + 11 * i, 7 );
 		pMDU->Underline( 17 + 11 * i, 7 );
-		sprintf_s(cbuf, 255, "%d   %s", 10*n+5, strings[DAPConfiguration[i].PRI_P_OPTION]);
+		sprintf_s(cbuf, 255, "%d   %s", 10*n+5, strings[DAPConfiguration[i][profile].PRI_P_OPTION]);
 		pMDU->mvprint(9+11*i, 8, cbuf);
-		sprintf_s(cbuf, 255, "%d   %s", 10*n+6, strings[DAPConfiguration[i].PRI_Y_OPTION]);
+		sprintf_s(cbuf, 255, "%d   %s", 10*n+6, strings[DAPConfiguration[i][profile].PRI_Y_OPTION]);
 		pMDU->mvprint(9+11*i, 9, cbuf);
-		sprintf_s(cbuf, 255, "%d  %.3f", 10*n+7, DAPConfiguration[i].PRI_TRAN_PLS);
+		sprintf_s(cbuf, 255, "%d  %.3f", 10*n+7, DAPConfiguration[i][profile].PRI_TRAN_PLS);
 		pMDU->mvprint(9+11*i, 10, cbuf);
 		pMDU->Underline( 13 + 11 * i, 10 );
 		pMDU->Underline( 14 + 11 * i, 10 );
@@ -1323,25 +1835,25 @@ void OrbitDAP::OnPaint(vc::MDU* pMDU) const
 		pMDU->Underline( 16 + 11 * i, 10 );
 		pMDU->Underline( 17 + 11 * i, 10 );
 
-		sprintf_s(cbuf, 255, "%d  %.3f", 10*n+8, DAPConfiguration[i].ALT_RATE_DB);
+		sprintf_s(cbuf, 255, "%d  %.3f", 10*n+8, DAPConfiguration[i][profile].ALT_RATE_DB);
 		pMDU->mvprint(9+11*i, 12, cbuf);
 		pMDU->Underline( 13 + 11 * i, 12 );
 		pMDU->Underline( 14 + 11 * i, 12 );
 		pMDU->Underline( 15 + 11 * i, 12 );
 		pMDU->Underline( 16 + 11 * i, 12 );
 		pMDU->Underline( 17 + 11 * i, 12 );
-		sprintf_s(cbuf, 255, "%d   %s", 10*n+9, strings[DAPConfiguration[i].ALT_JET_OPT]);
+		sprintf_s(cbuf, 255, "%d   %s", 10*n+9, strings[DAPConfiguration[i][profile].ALT_JET_OPT]);
 		pMDU->mvprint(9+11*i, 13, cbuf);
-		sprintf_s(cbuf, 255, "%d      %d", 10*n+10, DAPConfiguration[i].ALT_JETS);
+		sprintf_s(cbuf, 255, "%d      %d", 10*n+10, DAPConfiguration[i][profile].ALT_JETS);
 		pMDU->mvprint(9+11*i, 14, cbuf);
 		pMDU->Underline( 17 + 11 * i, 14 );
-		sprintf_s(cbuf, 255, "%d   %.2f", 10*n+11, DAPConfiguration[i].ALT_ON_TIME);
+		sprintf_s(cbuf, 255, "%d   %.2f", 10*n+11, DAPConfiguration[i][profile].ALT_ON_TIME);
 		pMDU->mvprint(9+11*i, 15, cbuf);
 		pMDU->Underline( 14 + 11 * i, 15 );
 		pMDU->Underline( 15 + 11 * i, 15 );
 		pMDU->Underline( 16 + 11 * i, 15 );
 		pMDU->Underline( 17 + 11 * i, 15 );
-		sprintf_s(cbuf, 255, "%d  %05.2f", 10*n+12, DAPConfiguration[i].ALT_DELAY);
+		sprintf_s(cbuf, 255, "%d  %05.2f", 10*n+12, DAPConfiguration[i][profile].ALT_DELAY);
 		pMDU->mvprint(9+11*i, 16, cbuf);
 		pMDU->Underline( 13 + 11 * i, 16 );
 		pMDU->Underline( 14 + 11 * i, 16 );
@@ -1349,7 +1861,7 @@ void OrbitDAP::OnPaint(vc::MDU* pMDU) const
 		pMDU->Underline( 16 + 11 * i, 16 );
 		pMDU->Underline( 17 + 11 * i, 16 );
 
-		sprintf_s(cbuf, 255, "%d %.4f", 10*n+13, DAPConfiguration[i].VERN_ROT_RATE);
+		sprintf_s(cbuf, 255, "%d %.4f", 10*n+13, DAPConfiguration[i][profile].VERN_ROT_RATE);
 		pMDU->mvprint(9+11*i, 18, cbuf);
 		pMDU->Underline( 12 + 11 * i, 18 );
 		pMDU->Underline( 13 + 11 * i, 18 );
@@ -1357,7 +1869,7 @@ void OrbitDAP::OnPaint(vc::MDU* pMDU) const
 		pMDU->Underline( 15 + 11 * i, 18 );
 		pMDU->Underline( 16 + 11 * i, 18 );
 		pMDU->Underline( 17 + 11 * i, 18 );
-		sprintf_s(cbuf, 255, "%d %06.3f", 10*n+14, DAPConfiguration[i].VERN_ATT_DB);
+		sprintf_s(cbuf, 255, "%d %06.3f", 10*n+14, DAPConfiguration[i][profile].VERN_ATT_DB);
 		pMDU->mvprint(9+11*i, 19, cbuf);
 		pMDU->Underline( 12 + 11 * i, 19 );
 		pMDU->Underline( 13 + 11 * i, 19 );
@@ -1365,28 +1877,28 @@ void OrbitDAP::OnPaint(vc::MDU* pMDU) const
 		pMDU->Underline( 15 + 11 * i, 19 );
 		pMDU->Underline( 16 + 11 * i, 19 );
 		pMDU->Underline( 17 + 11 * i, 19 );
-		sprintf_s(cbuf, 255, "%d  %.3f", 10*n+15, DAPConfiguration[i].VERN_RATE_DB);
+		sprintf_s(cbuf, 255, "%d  %.3f", 10*n+15, DAPConfiguration[i][profile].VERN_RATE_DB);
 		pMDU->mvprint(9+11*i, 20, cbuf);
 		pMDU->mvprint( 13 + 11 * i, 20, " " );
 		pMDU->Underline( 14 + 11 * i, 20 );
 		pMDU->Underline( 15 + 11 * i, 20 );
 		pMDU->Underline( 16 + 11 * i, 20 );
 		pMDU->Underline( 17 + 11 * i, 20 );
-		sprintf_s(cbuf, 255, "%d  %05.3f", 10*n+16, DAPConfiguration[i].VERN_ROT_PLS);
+		sprintf_s(cbuf, 255, "%d  %05.3f", 10*n+16, DAPConfiguration[i][profile].VERN_ROT_PLS);
 		pMDU->mvprint(9+11*i, 21, cbuf);
 		pMDU->Underline( 13 + 11 * i, 21 );
 		pMDU->Underline( 14 + 11 * i, 21 );
 		pMDU->Underline( 15 + 11 * i, 21 );
 		pMDU->Underline( 16 + 11 * i, 21 );
 		pMDU->Underline( 17 + 11 * i, 21 );
-		sprintf_s(cbuf, 255, "%d  %.3f", 10*n+17, DAPConfiguration[i].VERN_COMP);
+		sprintf_s(cbuf, 255, "%d  %.3f", 10*n+17, DAPConfiguration[i][profile].VERN_COMP);
 		pMDU->mvprint(9+11*i, 22, cbuf);
 		pMDU->mvprint( 13 + 11 * i, 22, " " );
 		pMDU->Underline( 14 + 11 * i, 22 );
 		pMDU->Underline( 15 + 11 * i, 22 );
 		pMDU->Underline( 16 + 11 * i, 22 );
 		pMDU->Underline( 17 + 11 * i, 22 );
-		sprintf_s(cbuf, 255, "%d      %d", 10*n+18, DAPConfiguration[i].VERN_CNTL_ACC);
+		sprintf_s(cbuf, 255, "%d      %d", 10*n+18, DAPConfiguration[i][profile].VERN_CNTL_ACC);
 		pMDU->mvprint(9+11*i, 23, cbuf);
 		pMDU->Underline( 17 + 11 * i, 23 );
 	}
@@ -1994,27 +2506,35 @@ void OrbitDAP::PCTControl(double simt)
 
 void OrbitDAP::UpdateDAPParameters()
 {
-	TransPulse=DAPConfiguration[DAPSelect].PRI_TRAN_PLS * FPS2MS; //same for all modes
-	if(DAPMode==PRI) {
-		degRotRate=DAPConfiguration[DAPSelect].PRI_ROT_RATE;
-		degAttDeadband=DAPConfiguration[DAPSelect].PRI_ATT_DB;
-		degRateDeadband=DAPConfiguration[DAPSelect].PRI_RATE_DB;
-		degRotPulse=DAPConfiguration[DAPSelect].PRI_ROT_PLS;
+	int profile;
+	if (DAPSelect == 0)
+		profile = activeAProfile;
+	else if (DAPSelect == 1)
+		profile = activeBProfile;
+	else
+		profile = 0;
 
-		if(DAPConfiguration[DAPSelect].PRI_P_OPTION!=0)
+	TransPulse=DAPConfiguration[DAPSelect][profile].PRI_TRAN_PLS * FPS2MS; //same for all modes
+	if(DAPMode==PRI) {
+		degRotRate=DAPConfiguration[DAPSelect][profile].PRI_ROT_RATE;
+		degAttDeadband=DAPConfiguration[DAPSelect][profile].PRI_ATT_DB;
+		degRateDeadband=DAPConfiguration[DAPSelect][profile].PRI_RATE_DB;
+		degRotPulse=DAPConfiguration[DAPSelect][profile].PRI_ROT_PLS;
+
+		if(DAPConfiguration[DAPSelect][profile].PRI_P_OPTION!=0)
 			Torque.data[PITCH]=0.5*ORBITER_PITCH_TORQUE;
 		else Torque.data[PITCH]=ORBITER_PITCH_TORQUE;
-		if(DAPConfiguration[DAPSelect].PRI_Y_OPTION!=0)
+		if(DAPConfiguration[DAPSelect][profile].PRI_Y_OPTION!=0)
 			Torque.data[YAW]=0.5*ORBITER_YAW_TORQUE;
 		else Torque.data[YAW]=ORBITER_YAW_TORQUE;
 		Torque.data[ROLL]=ORBITER_ROLL_TORQUE;
 	}
 	else if(DAPMode==ALT) {
-		degRotRate=DAPConfiguration[DAPSelect].PRI_ROT_RATE;
-		degAttDeadband=DAPConfiguration[DAPSelect].PRI_ATT_DB;
-		degRateDeadband=DAPConfiguration[DAPSelect].ALT_RATE_DB;
-		degRotPulse=DAPConfiguration[DAPSelect].PRI_ROT_PLS;
-		if(DAPConfiguration[DAPSelect].ALT_JET_OPT==2) {
+		degRotRate=DAPConfiguration[DAPSelect][profile].PRI_ROT_RATE;
+		degAttDeadband=DAPConfiguration[DAPSelect][profile].PRI_ATT_DB;
+		degRateDeadband=DAPConfiguration[DAPSelect][profile].ALT_RATE_DB;
+		degRotPulse=DAPConfiguration[DAPSelect][profile].PRI_ROT_PLS;
+		if(DAPConfiguration[DAPSelect][profile].ALT_JET_OPT==2) {
 			Torque.data[PITCH]=0.5*ORBITER_PITCH_TORQUE;
 			Torque.data[YAW]=0.5*ORBITER_YAW_TORQUE;
 			Torque.data[ROLL]=0.5*ORBITER_ROLL_TORQUE;
@@ -2026,10 +2546,10 @@ void OrbitDAP::UpdateDAPParameters()
 		}
 	}
 	else if(DAPMode==VERN) {
-		degRotRate=DAPConfiguration[DAPSelect].VERN_ROT_RATE;
-		degAttDeadband=DAPConfiguration[DAPSelect].VERN_ATT_DB;
-		degRateDeadband=DAPConfiguration[DAPSelect].VERN_RATE_DB;
-		degRotPulse=DAPConfiguration[DAPSelect].VERN_ROT_PLS;
+		degRotRate=DAPConfiguration[DAPSelect][profile].VERN_ROT_RATE;
+		degAttDeadband=DAPConfiguration[DAPSelect][profile].VERN_ATT_DB;
+		degRateDeadband=DAPConfiguration[DAPSelect][profile].VERN_RATE_DB;
+		degRotPulse=DAPConfiguration[DAPSelect][profile].VERN_ROT_PLS;
 		Torque.data[PITCH]=0.1*ORBITER_PITCH_TORQUE;
 		Torque.data[YAW]=0.1*ORBITER_YAW_TORQUE;
 		Torque.data[ROLL]=0.1*ORBITER_ROLL_TORQUE;
@@ -2072,6 +2592,19 @@ MATRIX3 OrbitDAP::GetCurrentLVLHRefMatrix() const
 MATRIX3 OrbitDAP::GetCurrentLVLHAttMatrix() const
 {
 	return GetRotationErrorMatrix(GetCurrentLVLHRefMatrix(), curM50Matrix);
+}
+
+int OrbitDAP::GetCurrentProfile(int item)
+{
+	switch (convert[item])
+	{
+	case 0:
+		return activeAProfile;
+	case 1:
+		return activeBProfile;
+	default:
+		return 0;
+	}
 }
 
 VECTOR3 OrbitDAP::GetAttitudeErrors( void ) const

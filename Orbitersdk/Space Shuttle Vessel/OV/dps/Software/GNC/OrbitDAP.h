@@ -39,6 +39,7 @@ Date         Developer
 2022/12/28   GLS
 2026/04/05   indy91
 2026/10/14   google0101-ryan
+2026/10/27   google0101-ryan
 ********************************************/
 #ifndef _dps_ORBITDAP_H_
 #define _dps_ORBITDAP_H_
@@ -141,10 +142,37 @@ private:
 	ROT_MODE RotMode[3];
 	TRANS_MODE TransMode[3]; // 0=X, 1=Y, 2=Z
 
+	// This takes some explaining
+	// The displayed DAP when a profile is loaded in SPEC 20
+	// is, much like the NBAT in SPEC 0, a temporary copy
+	// edits to these copies are discarded when the DAP profile is changed
+	// to make permanent changes to the DAP, you must use the edit DAP
+	enum DAP
+	{
+		DAP_A = 0,
+		DAP_B = 1,
+		EDIT_DAP = 2,
+	};
+
+	enum DAPOption
+	{
+		DAP_ALL = 0,
+		DAP_NOSE = 1,
+		DAP_TAIL = 2
+	};
+
+	// Tracks which DAP we're editing, A or B
 	int editDAP; // -1=None, 0=A, 1=B
+	// Tracks with profile within the DAP we're editing, 0-14
 	int editDAPProfile;
-	int activeAProfile, activeBProfile; // 0-14, specifies profile within either A or B
-	DAPConfig DAPConfiguration[3][15]; //0=A, 1=B, 2=Edit
+	// The actual edit DAP settings
+	DAPConfig editDAPConfig;
+	// The permanently stored DAP settings
+	DAPConfig dapProfiles[2][15]; //0=A, 1=B
+	// Currently selected DAPs with temporary changes saved to them, overwritten when DAP profile is changed
+	DAPConfig tmpAProfile, tmpBProfile;
+	// Purely so we can display it on SPEC 20
+	int activeAProfile, activeBProfile;
 
 	// values change depending on DAP mode selected
 	// initialized in Realize() function
@@ -310,8 +338,6 @@ private:
 	 * Returns rotation matrix representing current attitude in LVLH frame
 	 */
 	MATRIX3 GetCurrentLVLHAttMatrix() const;
-
-	int GetCurrentProfile(int item);
 };
 
 }
